@@ -7,10 +7,13 @@ import '../../features/authentication/presentation/forgot_password_screen.dart';
 import '../../features/authentication/presentation/login_screen.dart';
 import '../../features/authentication/presentation/register_screen.dart';
 import '../../features/authentication/presentation/splash_screen.dart';
+import '../../features/moderation/presentation/blocked_users_screen.dart';
 import '../../features/profile/data/profile_repository.dart';
 import '../../features/profile/presentation/edit_profile_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/profile/presentation/profile_setup_screen.dart';
+import '../../features/settings/presentation/privacy_policy_screen.dart';
+import '../../features/settings/presentation/settings_screen.dart';
 import '../widgets/app_shell.dart';
 import '../widgets/placeholder_screen.dart';
 import 'route_names.dart';
@@ -98,18 +101,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RoutePaths.settings,
-        builder: (context, state) =>
-            const PlaceholderScreen(title: 'Ayarlar', owner: 'A'),
+        builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
         path: RoutePaths.blockedUsers,
-        builder: (context, state) =>
-            const PlaceholderScreen(title: 'Engellenen kullanıcılar', owner: 'A'),
+        builder: (context, state) => const BlockedUsersScreen(),
       ),
       GoRoute(
         path: RoutePaths.privacyPolicy,
-        builder: (context, state) =>
-            const PlaceholderScreen(title: 'Gizlilik politikası', owner: 'A'),
+        builder: (context, state) => const PrivacyPolicyScreen(),
       ),
 
       // --- Etkinlikler (B) --- sabit yollar ':eventId' değişkeninden önce gelir.
