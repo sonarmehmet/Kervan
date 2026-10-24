@@ -14,9 +14,12 @@ Birisi etkinlik oluşturur, diğerleri katılım talebi gönderir, etkinlik sahi
 
 ## Durum
 
-Aşama 2 başladı: yapılandırma dosyaları, güvenlik kuralları ve indexler yazıldı.
-Dart kodu henüz yazılmadı. Flutter bu geliştirme ortamında kurulamadığı için derleme ve test
-yapılamadı; `flutter analyze` ve `flutter test` yerel makinede çalıştırılmalı.
+- A bölümü, 1. adım (core + giriş + profil) yazıldı: tema, router, ortak widget'lar, sabitler,
+  e-posta/şifre ile kayıt-giriş-şifre sıfırlama, profil oluşturma/düzenleme.
+- Henüz yazılmadı: ayarlar, hesap silme, engelleme/şikâyet (A, sonraki adım), etkinlikler (B), katılım ve sunucu (C).
+- Router'da B ve C ekranları şimdilik `PlaceholderScreen` ile duruyor.
+- DERLENMEDİ: kod yazılırken Flutter erişilebilir değildi. İlk işin `flutter pub get`, `flutter analyze`
+  ve `flutter test` çalıştırıp çıkan hataları bildirmek olmalı.
 
 ## İlk kurulum (kendi bilgisayarında)
 
