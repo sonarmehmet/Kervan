@@ -116,7 +116,7 @@ class _ProfileFormState extends State<ProfileForm> {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: _city,
+            initialValue: _city,
             isExpanded: true,
             decoration: AppTheme.inputDecoration(label: 'Şehir'),
             items: [
