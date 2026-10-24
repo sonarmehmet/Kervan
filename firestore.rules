@@ -1,0 +1,209 @@
+rules_version = '2';
+
+// Kervan - Firestore güvenlik kuralları
+//
+// İlkeler:
+//  - Yetki kontrolü burada, sunucu tarafında yapılır; arayüz kontrolü yeterli sayılmaz.
+//  - acceptedCount, participants ve bildirimler yalnızca Cloud Functions (admin SDK) ile yazılır.
+//  - Tam konum (events/{id}/private/location) yalnızca sahip ve onaylı katılımcılar tarafından okunur.
+//  - Açıkça izin verilmeyen her şey reddedilir.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Yardımcı fonksiyonlar ----------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function eventPath(eventId) {
+      return /databases/$(database)/documents/events/$(eventId);
+    }
+
+    function isEventOwner(eventId) {
+      return isSignedIn() && get(eventPath(eventId)).data.ownerId == request.auth.uid;
+    }
+
+    // Toplu yazmada (batch) etkinlik ve konum birlikte yazıldığı için yazma SONRASI duruma bakılır.
+    function isEventOwnerAfter(eventId) {
+      return isSignedIn() && getAfter(eventPath(eventId)).data.ownerId == request.auth.uid;
+    }
+
+    function isParticipant(eventId) {
+      return isSignedIn() && exists(
+        /databases/$(database)/documents/events/$(eventId)/participants/$(request.auth.uid)
+      );
+    }
+
+    function validString(value, minLength, maxLength) {
+      return value is string && value.size() >= minLength && value.size() <= maxLength;
+    }
+
+    // ---------- Kullanıcı profilleri ----------
+
+    function validProfile(data) {
+      return data.keys().hasOnly(['displayName', 'bio', 'city', 'interests', 'createdAt', 'updatedAt'])
+        && data.keys().hasAll(['displayName', 'bio', 'city', 'interests', 'createdAt'])
+        && validString(data.displayName, 2, 40)
+        && validString(data.bio, 0, 280)
+        && validString(data.city, 0, 40)
+        && data.interests is list
+        && data.interests.size() <= 10
+        && data.createdAt is timestamp;
+    }
+
+    match /users/{uid} {
+      // E-posta gibi özel veriler bu belgede tutulmaz; profil alanları herkese açıktır.
+      allow read: if isSignedIn();
+      allow create: if isSelf(uid) && validProfile(request.resource.data);
+      allow update: if isSelf(uid)
+        && validProfile(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false; // Hesap silme Cloud Function ile yapılır.
+
+      match /blocks/{blockedUid} {
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid) && blockedUid != uid;
+      }
+    }
+
+    // ---------- Etkinlikler ----------
+
+    function validNewEvent(data) {
+      return data.keys().hasOnly([
+          'ownerId', 'ownerName', 'title', 'description', 'category', 'city', 'district',
+          'startsAt', 'capacity', 'acceptedCount', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasAll([
+          'ownerId', 'ownerName', 'title', 'description', 'category', 'city', 'district',
+          'startsAt', 'capacity', 'acceptedCount', 'status', 'createdAt'
+        ])
+        && data.ownerId == request.auth.uid
+        && validString(data.ownerName, 1, 40)
+        && validString(data.title, 3, 80)
+        && validString(data.description, 0, 1000)
+        && validString(data.category, 1, 30)
+        && validString(data.city, 2, 30)
+        && validString(data.district, 0, 40)
+        && data.startsAt is timestamp
+        && data.startsAt > request.time
+        && data.capacity is int
+        && data.capacity >= 1
+        && data.capacity <= 100
+        && data.acceptedCount == 0
+        && data.status == 'active'
+        && data.createdAt == request.time;
+    }
+
+    function validEventUpdate(old, data) {
+      return data.diff(old).affectedKeys().hasOnly([
+          'title', 'description', 'category', 'city', 'district',
+          'startsAt', 'capacity', 'status', 'updatedAt'
+        ])
+        && validString(data.title, 3, 80)
+        && validString(data.description, 0, 1000)
+        && validString(data.category, 1, 30)
+        && validString(data.city, 2, 30)
+        && validString(data.district, 0, 40)
+        && data.startsAt is timestamp
+        && (data.startsAt == old.startsAt || data.startsAt > request.time)
+        && data.capacity is int
+        && data.capacity >= 1
+        && data.capacity <= 100
+        && data.capacity >= old.acceptedCount
+        && (data.status == old.status || (old.status == 'active' && data.status == 'cancelled'));
+    }
+
+    match /events/{eventId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && validNewEvent(request.resource.data);
+      allow update: if isSignedIn()
+        && resource.data.ownerId == request.auth.uid
+        && validEventUpdate(resource.data, request.resource.data);
+      allow delete: if false;
+
+      // Tam konum: yalnızca sahip ve onaylı katılımcılar.
+      match /private/{docId} {
+        allow read: if isEventOwner(eventId) || isParticipant(eventId);
+        allow create, update: if docId == 'location'
+          && isEventOwnerAfter(eventId)
+          && request.resource.data.keys().hasOnly(['address'])
+          && validString(request.resource.data.address, 3, 200);
+        allow delete: if false;
+      }
+
+      // Katılım talepleri
+      function validNewRequest(data) {
+        return data.keys().hasOnly(['userId', 'userName', 'status', 'createdAt'])
+          && data.userId == request.auth.uid
+          && validString(data.userName, 1, 40)
+          && data.status == 'pending'
+          && data.createdAt == request.time
+          && get(eventPath(eventId)).data.status == 'active'
+          && get(eventPath(eventId)).data.ownerId != request.auth.uid
+          && get(eventPath(eventId)).data.startsAt > request.time;
+      }
+
+      // Katılımcı yalnızca bekleyen talebini geri çekebilir veya geri çekilmiş talebini yeniden açabilir.
+      // Onay, red ve onaylı katılımdan ayrılma yalnızca Cloud Functions ile yapılır.
+      function validRequestToggle(old, data) {
+        return data.diff(old).affectedKeys().hasOnly(['status'])
+          && (
+            (old.status == 'pending' && data.status == 'cancelled')
+            || (old.status == 'cancelled' && data.status == 'pending'
+                && get(eventPath(eventId)).data.status == 'active'
+                && get(eventPath(eventId)).data.startsAt > request.time)
+          );
+      }
+
+      match /requests/{userId} {
+        allow get: if isSelf(userId) || isEventOwner(eventId);
+        allow list: if isEventOwner(eventId);
+        allow create: if isSelf(userId) && validNewRequest(request.resource.data);
+        allow update: if isSelf(userId) && validRequestToggle(resource.data, request.resource.data);
+        allow delete: if false;
+      }
+
+      match /participants/{userId} {
+        allow get: if isSelf(userId) || isEventOwner(eventId) || isParticipant(eventId);
+        allow list: if isEventOwner(eventId) || isParticipant(eventId);
+        allow write: if false; // Yalnızca Cloud Functions
+      }
+    }
+
+    // "Katıldığım etkinlikler" sorgusu (collectionGroup) için: yalnızca kendi kayıtları.
+    match /{path=**}/participants/{userId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // ---------- Bildirimler ----------
+
+    match /notifications/{uid}/items/{itemId} {
+      allow read: if isSelf(uid);
+      allow update: if isSelf(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow create, delete: if false; // Yalnızca Cloud Functions
+    }
+
+    // ---------- Şikâyetler ----------
+
+    match /reports/{reportId} {
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly(
+          ['reporterId', 'targetType', 'targetId', 'reason', 'details', 'status', 'createdAt'])
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.targetType in ['event', 'user']
+        && validString(request.resource.data.targetId, 1, 128)
+        && request.resource.data.reason in ['spam', 'harassment', 'unsafe', 'fake', 'other']
+        && validString(request.resource.data.details, 0, 500)
+        && request.resource.data.status == 'open'
+        && request.resource.data.createdAt == request.time;
+      allow read, update, delete: if false; // Yalnızca yönetici (konsol / admin SDK)
+    }
+  }
+}

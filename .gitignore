@@ -1,0 +1,38 @@
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+*.iml
+.idea/
+.vscode/
+
+# Android
+android/.gradle/
+android/local.properties
+android/key.properties
+android/app/*.jks
+android/app/*.keystore
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+
+# Firebase: kullanıcıya özel yapılandırma dosyaları commit edilmez
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+lib/firebase_options.dart
+.firebaserc
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Cloud Functions / testler
+functions/node_modules/
+functions/lib/
+rules_test/node_modules/
+
+.DS_Store
