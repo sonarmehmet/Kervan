@@ -16,10 +16,11 @@ Birisi etkinlik oluşturur, diğerleri katılım talebi gönderir, etkinlik sahi
 
 - A bölümü, 1. adım (core + giriş + profil) yazıldı: tema, router, ortak widget'lar, sabitler,
   e-posta/şifre ile kayıt-giriş-şifre sıfırlama, profil oluşturma/düzenleme.
-- Henüz yazılmadı: ayarlar, hesap silme, engelleme/şikâyet (A, sonraki adım), etkinlikler (B), katılım ve sunucu (C).
+- A bölümü, 2. adım: ayarlar, hesap silme (deleteAccount fonksiyonunu çağırır), engelleme ve şikâyet.
+- Henüz yazılmadı: etkinlikler (B), katılım ve sunucu (C). Gizlilik politikası metni YER TUTUCUDUR.
 - Router'da B ve C ekranları şimdilik `PlaceholderScreen` ile duruyor.
-- DERLENMEDİ: kod yazılırken Flutter erişilebilir değildi. İlk işin `flutter pub get`, `flutter analyze`
-  ve `flutter test` çalıştırıp çıkan hataları bildirmek olmalı.
+- DOĞRULANDI (Flutter 3.44, Dart 3.12): `flutter pub get` başarılı, `flutter analyze` hatasız, `flutter test` 14 test geçti.
+  Minimum sürüm: Flutter 3.33, Dart 3.9. Henüz telefonda çalıştırılıp denenmedi ve Firebase bağlanmadı.
 
 ## İlk kurulum (kendi bilgisayarında)
 
