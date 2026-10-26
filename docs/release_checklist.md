@@ -48,7 +48,7 @@ Bu liste sırayla ilerlemen için hazırlandı. Kuralların bir kısmı zamanla 
 - [ ] Uygulama ikonu 512x512 PNG, öne çıkan görsel 1024x500, en az 2 telefon ekran görüntüsü.
 - [ ] Kategori: Sosyal (veya Yaşam Tarzı).
 - [ ] İletişim e-postası (herkese açık görünür).
-- [ ] **Gizlilik politikası bağlantısı:** herkese açık, internetten erişilebilir bir adres. Taslak:
+- [ ] **Gizlilik politikası bağlantısı** (hazır sayfalar: `docs/site/`, GitHub Pages ile `docs` klasöründen yayınlanabilir; `[...]` alanlarını doldur): herkese açık, internetten erişilebilir bir adres. Taslak:
       `docs/privacy_policy_draft.md` (hukuki inceleme gerekir). GitHub Pages ile yayınlanabilir.
 
 ## 6. Play Console formları
