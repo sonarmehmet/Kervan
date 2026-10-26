@@ -121,7 +121,7 @@ class NotificationsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Bildirimler'),
         actions: [
-          if (hasUnread && items != null)
+          if (hasUnread)
             TextButton(
               onPressed: () => _markAllRead(context, ref, items),
               child: const Text('Tümünü okundu yap'),
