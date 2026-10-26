@@ -76,6 +76,13 @@ Belge kimliği = isteği gönderenin uid'i (bir kullanıcı bir etkinliğe tek t
 Yalnızca Cloud Functions yazar. Alanlar: `userId`, `userName`, `joinedAt`.
 Okuma: kişinin kendisi, sahip, diğer onaylı katılımcılar.
 
+### 2.4 `events/{eventId}/messages/{messageId}`
+
+Etkinlik sohbeti. Alanlar: `senderId`, `text` (1-500), `createdAt` (= sunucu zamanı).
+Gönderen adı SAKLANMAZ; istemci adı sahip adı + katılımcı listesinden çözer (taklit riskini önler).
+Okuma/yazma: yalnızca sahip ve onaylı katılımcılar; yazma yalnızca etkinlik `active` iken.
+Güncelleme yok; silme: gönderen veya etkinlik sahibi. Hesap silinince mesajlar silinir.
+
 ## 3. `notifications/{uid}/items/{itemId}`
 
 Yalnızca Cloud Functions oluşturur. Kullanıcı yalnızca `read` alanını günceller.

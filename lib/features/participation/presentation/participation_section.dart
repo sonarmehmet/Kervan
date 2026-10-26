@@ -107,6 +107,12 @@ class _ParticipationSectionState extends ConsumerState<ParticipationSection> {
             positive: true,
           ),
           const SizedBox(height: 12),
+          FilledButton.tonalIcon(
+            onPressed: () => context.push(RoutePaths.eventChat(event.id)),
+            icon: const Icon(Icons.chat_bubble_outline),
+            label: const Text('Etkinlik sohbeti'),
+          ),
+          const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: () =>
                 context.push(RoutePaths.eventParticipants(event.id)),
@@ -217,6 +223,12 @@ class _OwnerActions extends ConsumerWidget {
             child: const Icon(Icons.inbox_outlined),
           ),
           label: const Text('Katılım talepleri'),
+        ),
+        const SizedBox(height: 8),
+        FilledButton.tonalIcon(
+          onPressed: () => context.push(RoutePaths.eventChat(event.id)),
+          icon: const Icon(Icons.chat_bubble_outline),
+          label: const Text('Etkinlik sohbeti'),
         ),
         const SizedBox(height: 8),
         OutlinedButton.icon(

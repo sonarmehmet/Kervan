@@ -44,6 +44,13 @@ service cloud.firestore {
       return value is string && value.size() >= minLength && value.size() <= maxLength;
     }
 
+    function validMessage(data) {
+      return data.keys().hasOnly(['senderId', 'text', 'createdAt'])
+        && data.senderId == request.auth.uid
+        && validString(data.text, 1, 500)
+        && data.createdAt == request.time;
+    }
+
     // ---------- Kullanıcı profilleri ----------
 
     function validProfile(data) {
@@ -177,6 +184,18 @@ service cloud.firestore {
         allow create: if isSelf(userId) && validNewRequest(request.resource.data);
         allow update: if isSelf(userId) && validRequestToggle(resource.data, request.resource.data);
         allow delete: if false;
+      }
+
+      // Sohbet: yalnızca sahip ve onaylı katılımcılar okur/yazar. Gönderen adı saklanmaz
+      // (taklit riski); istemci adı katılımcı listesinden çözer.
+      match /messages/{messageId} {
+        allow read: if isEventOwner(eventId) || isParticipant(eventId);
+        allow create: if isSignedIn()
+          && (isEventOwner(eventId) || isParticipant(eventId))
+          && get(eventPath(eventId)).data.status == 'active'
+          && validMessage(request.resource.data);
+        allow update: if false;
+        allow delete: if isSelf(resource.data.senderId) || isEventOwner(eventId);
       }
 
       match /participants/{userId} {

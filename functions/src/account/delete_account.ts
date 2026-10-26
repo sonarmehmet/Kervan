@@ -21,7 +21,7 @@ async function ignorePrecondition(action: () => Promise<void>): Promise<void> {
  * Hesabı ve ilişkili verileri siler.
  *  1. Sahibi olduğu etkinlikler iptal edilir, sahip adı anonimleştirilir, tam konum silinir.
  *  2. Katılımcı olduğu etkinliklerden çıkarılır (sayaç düzeltilir).
- *  3. Gönderdiği tüm katılım talepleri silinir.
+ *  3. Sohbet mesajları ve gönderdiği tüm katılım talepleri silinir.
  *  4. Profil, engeller ve bildirimler silinir.
  *  5. Auth kaydı en sonda silinir; böylece bir adım başarısız olursa kullanıcı tekrar deneyebilir.
  * Şikâyet kayıtları moderasyon için saklanır.
@@ -53,6 +53,17 @@ export const deleteAccount = onCall({timeoutSeconds: 120}, async (request) => {
       await ignorePrecondition(() => leaveEventInternal(eventRef.id, uid));
     }
   }
+
+  // 2b. Sohbette yazdığı mesajlar
+  const messages = await db
+    .collectionGroup("messages")
+    .where("senderId", "==", uid)
+    .get();
+  const messageWriter = db.bulkWriter();
+  for (const doc of messages.docs) {
+    messageWriter.delete(doc.ref);
+  }
+  await messageWriter.close();
 
   // 3. Gönderdiği talepler
   const requests = await db

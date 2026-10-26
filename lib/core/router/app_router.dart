@@ -14,6 +14,7 @@ import '../../features/event_details/presentation/my_events_screen.dart';
 import '../../features/event_discovery/presentation/discover_screen.dart';
 import '../../features/moderation/presentation/blocked_users_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
+import '../../features/chat/presentation/chat_screen.dart';
 import '../../features/participation/presentation/participants_screen.dart';
 import '../../features/participation/presentation/request_list_screen.dart';
 import '../../features/profile/data/profile_repository.dart';
@@ -135,6 +136,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'requests',
             builder: (context, state) => RequestListScreen(
+              eventId: state.pathParameters['eventId']!,
+            ),
+          ),
+          GoRoute(
+            path: 'chat',
+            builder: (context, state) => ChatScreen(
               eventId: state.pathParameters['eventId']!,
             ),
           ),

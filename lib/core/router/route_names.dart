@@ -27,6 +27,8 @@ abstract final class RoutePaths {
   static String eventParticipants(String eventId) =>
       '/events/$eventId/participants';
 
+  static String eventChat(String eventId) => '/events/$eventId/chat';
+
   /// Giriş yapmadan erişilebilen yollar.
   static const Set<String> publicPaths = <String>{
     login,

@@ -499,3 +499,85 @@ describe("reports (şikâyetler)", () => {
     await assertFails(deleteDoc(doc(dbOf(ALICE), "reports", "r1")));
   });
 });
+
+describe("messages (etkinlik sohbeti)", () => {
+  const path = ["events", EVENT, "messages"];
+  const msg = (senderId, extra = {}) => ({
+    senderId,
+    text: "Merhaba",
+    createdAt: serverTimestamp(),
+    ...extra,
+  });
+
+  async function seedChat() {
+    await seedEvent();
+    await seed(async (db) => {
+      await setDoc(doc(db, "events", EVENT, "participants", ALICE), {
+        userId: ALICE,
+        userName: "Ali",
+        joinedAt: Timestamp.now(),
+      });
+      await setDoc(doc(db, "events", EVENT, "messages", "m1"), {
+        senderId: ALICE,
+        text: "Selam",
+        createdAt: Timestamp.now(),
+      });
+    });
+  }
+
+  it("sahip ve katılımcı yazabilir ve okuyabilir", async () => {
+    await seedChat();
+    await assertSucceeds(addDocMsg(dbOf(ALICE), msg(ALICE)));
+    await assertSucceeds(addDocMsg(dbOf(OWNER), msg(OWNER)));
+    await assertSucceeds(getDocs(collection(dbOf(ALICE), ...path)));
+    await assertSucceeds(getDocs(collection(dbOf(OWNER), ...path)));
+  });
+
+  it("yabancı ve girişsiz kullanıcı okuyamaz ve yazamaz", async () => {
+    await seedChat();
+    await assertFails(getDocs(collection(dbOf(BOB), ...path)));
+    await assertFails(addDocMsg(dbOf(BOB), msg(BOB)));
+    await assertFails(getDocs(collection(anonDb(), ...path)));
+    await assertFails(addDocMsg(anonDb(), msg(BOB)));
+  });
+
+  it("başkası adına mesaj yazılamaz", async () => {
+    await seedChat();
+    await assertFails(addDocMsg(dbOf(ALICE), msg(OWNER)));
+  });
+
+  it("geçersiz içerik reddedilir", async () => {
+    await seedChat();
+    await assertFails(addDocMsg(dbOf(ALICE), msg(ALICE, {text: ""})));
+    await assertFails(addDocMsg(dbOf(ALICE), msg(ALICE, {text: "a".repeat(501)})));
+    await assertFails(addDocMsg(dbOf(ALICE), msg(ALICE, {senderName: "Sahte"})));
+    await assertFails(addDocMsg(dbOf(ALICE), msg(ALICE, {createdAt: Timestamp.now()})));
+    await assertSucceeds(addDocMsg(dbOf(ALICE), msg(ALICE, {text: "a".repeat(500)})));
+  });
+
+  it("iptal edilmiş etkinlikte yazılamaz", async () => {
+    await seedChat();
+    await seed((db) => updateDoc(doc(db, "events", EVENT), {status: "cancelled"}));
+    await assertFails(addDocMsg(dbOf(ALICE), msg(ALICE)));
+    await assertSucceeds(getDocs(collection(dbOf(ALICE), ...path)));
+  });
+
+  it("mesaj güncellenemez; yalnızca gönderen veya sahip siler", async () => {
+    await seedChat();
+    await assertFails(updateDoc(doc(dbOf(ALICE), ...path, "m1"), {text: "değişti"}));
+    await assertFails(deleteDoc(doc(dbOf(BOB), ...path, "m1")));
+    await assertSucceeds(deleteDoc(doc(dbOf(ALICE), ...path, "m1")));
+    await seed((db) =>
+      setDoc(doc(db, "events", EVENT, "messages", "m2"), {
+        senderId: ALICE,
+        text: "x",
+        createdAt: Timestamp.now(),
+      })
+    );
+    await assertSucceeds(deleteDoc(doc(dbOf(OWNER), ...path, "m2")));
+  });
+});
+
+function addDocMsg(db, data) {
+  return setDoc(doc(collection(db, "events", EVENT, "messages")), data);
+}

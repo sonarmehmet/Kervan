@@ -8,6 +8,7 @@ abstract final class FirestorePaths {
   static const String locationDocId = 'location';
   static const String requests = 'requests';
   static const String participants = 'participants';
+  static const String messages = 'messages';
   static const String notifications = 'notifications';
   static const String notificationItems = 'items';
   static const String reports = 'reports';
@@ -31,6 +32,8 @@ abstract final class FirestorePaths {
       '$events/$eventId/$participants';
   static String eventParticipant(String eventId, String userId) =>
       '$events/$eventId/$participants/$userId';
+
+  static String eventMessages(String eventId) => '$events/$eventId/$messages';
 
   static String userNotifications(String uid) =>
       '$notifications/$uid/$notificationItems';
