@@ -17,8 +17,27 @@ jobs:
           cache: true
       - run: flutter --version
       - run: flutter pub get
-      - run: flutter analyze
-      - run: flutter test
+      - name: flutter analyze
+        run: |
+          set +e
+          flutter analyze > analyze.txt 2>&1
+          status=$?
+          level=notice
+          if [ $status -ne 0 ]; then level=error; fi
+          msg=$(tail -c 30000 analyze.txt | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+          echo "::${level} title=analyze-output::${msg}"
+          exit $status
+      - name: flutter test
+        if: always()
+        run: |
+          set +e
+          flutter test > test.txt 2>&1
+          status=$?
+          level=notice
+          if [ $status -ne 0 ]; then level=error; fi
+          msg=$(tail -c 30000 test.txt | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+          echo "::${level} title=test-output::${msg}"
+          exit $status
 
   functions:
     name: Cloud Functions derlemesi
