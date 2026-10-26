@@ -57,6 +57,7 @@ final profileRepositoryProvider = Provider<ProfileRepository>(
 /// Giriş yapmış kullanıcının profili. Giriş yoksa veya profil oluşturulmamışsa `null`.
 final currentProfileProvider = StreamProvider<UserProfile?>((ref) {
   final user = ref.watch(authStateProvider).valueOrNull;
-  if (user == null) return Stream<UserProfile?>.value(null);
+  // E-postası doğrulanmamış kullanıcı kurallar gereği veriye erişemez; profil yok sayılır.
+  if (user == null || !user.emailVerified) return Stream<UserProfile?>.value(null);
   return ref.watch(profileRepositoryProvider).watchProfile(user.uid);
 });

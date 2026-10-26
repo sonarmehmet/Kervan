@@ -18,6 +18,8 @@ abstract final class RoutePaths {
   static const String settings = '/settings';
   static const String blockedUsers = '/settings/blocked';
   static const String privacyPolicy = '/settings/privacy';
+  static const String terms = '/settings/terms';
+  static const String verifyEmail = '/verify-email';
 
   // Etkinlikler. DİKKAT: 'create' sabit yolu ':eventId' değişkeninden ÖNCE tanımlanmalı.
   static const String createEvent = '/events/create';
@@ -35,5 +37,6 @@ abstract final class RoutePaths {
     register,
     forgotPassword,
     privacyPolicy,
+    terms,
   };
 }

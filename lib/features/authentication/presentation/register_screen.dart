@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/errors/error_mapper.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_theme.dart';
@@ -22,6 +23,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _confirmController = TextEditingController();
   bool _loading = false;
   bool _obscure = true;
+  bool _acceptedTerms = false;
+  bool _isAdult = false;
+  bool _showConsentError = false;
 
   @override
   void dispose() {
@@ -32,7 +36,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    final formValid = _formKey.currentState!.validate();
+    final consentOk = _acceptedTerms && _isAdult;
+    setState(() => _showConsentError = !consentOk);
+    if (!formValid || !consentOk) return;
     setState(() => _loading = true);
     try {
       await ref.read(authRepositoryProvider).register(
@@ -104,7 +111,70 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ? 'Şifreler aynı değil.'
                           : null,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 8),
+                    Text(
+                      'En az ${AppConfig.passwordMin} karakter; en az bir harf ve bir rakam.',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 16),
+                    CheckboxListTile(
+                      value: _isAdult,
+                      onChanged: (v) => setState(() => _isAdult = v ?? false),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('18 yaşını doldurdum.'),
+                    ),
+                    CheckboxListTile(
+                      value: _acceptedTerms,
+                      onChanged: (v) => setState(() => _acceptedTerms = v ?? false),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text.rich(
+                        TextSpan(
+                          children: [
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.baseline,
+                              baseline: TextBaseline.alphabetic,
+                              child: GestureDetector(
+                                onTap: () => context.push(RoutePaths.terms),
+                                child: Text(
+                                  'Kullanım Koşulları',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.primary,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const TextSpan(text: ' ve '),
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.baseline,
+                              baseline: TextBaseline.alphabetic,
+                              child: GestureDetector(
+                                onTap: () => context.push(RoutePaths.privacyPolicy),
+                                child: Text(
+                                  'Gizlilik Politikası',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.primary,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const TextSpan(text: "'nı okudum, kabul ediyorum."),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (_showConsentError && !(_acceptedTerms && _isAdult))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          'Devam etmek için 18 yaşını doldurduğunu onaylamalı ve koşulları kabul etmelisin.',
+                          style: TextStyle(color: theme.colorScheme.error),
+                        ),
+                      ),
+                    const SizedBox(height: 16),
                     FilledButton(
                       onPressed: _loading ? null : _submit,
                       child: _loading
@@ -114,31 +184,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Text('Hesap oluştur'),
-                    ),
-                    const SizedBox(height: 16),
-                    Text.rich(
-                      TextSpan(
-                        text: 'Kayıt olarak ',
-                        children: [
-                          WidgetSpan(
-                            alignment: PlaceholderAlignment.baseline,
-                            baseline: TextBaseline.alphabetic,
-                            child: GestureDetector(
-                              onTap: () => context.push(RoutePaths.privacyPolicy),
-                              child: Text(
-                                'Gizlilik Politikası',
-                                style: TextStyle(
-                                  color: theme.colorScheme.primary,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const TextSpan(text: "'nı kabul etmiş olursun."),
-                        ],
-                      ),
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall,
                     ),
                   ],
                 ),

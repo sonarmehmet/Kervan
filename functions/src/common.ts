@@ -41,6 +41,12 @@ export function requireAuth(request: CallableRequest<unknown>): string {
       "Devam etmek için giriş yapmalısın."
     );
   }
+  if (request.auth?.token?.email_verified !== true) {
+    throw new HttpsError(
+      "permission-denied",
+      "Devam etmek için e-posta adresini doğrulamalısın."
+    );
+  }
   return uid;
 }
 

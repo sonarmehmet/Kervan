@@ -6,11 +6,13 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:rota/core/theme/app_theme.dart';
 import 'package:rota/features/authentication/data/auth_repository.dart';
 import 'package:rota/features/authentication/presentation/login_screen.dart';
+import 'package:rota/features/authentication/presentation/register_screen.dart';
 import 'package:rota/features/event_details/data/event.dart';
 import 'package:rota/features/event_discovery/presentation/event_card.dart';
 
 class _FakeAuth implements AuthRepository {
   final List<String> signInCalls = <String>[];
+  final List<String> registerCalls = <String>[];
 
   @override
   User? get currentUser => null;
@@ -24,10 +26,18 @@ class _FakeAuth implements AuthRepository {
   }
 
   @override
-  Future<void> register({required String email, required String password}) async {}
+  Future<void> register({required String email, required String password}) async {
+    registerCalls.add('$email|$password');
+  }
 
   @override
   Future<void> sendPasswordReset(String email) async {}
+
+  @override
+  Future<void> sendEmailVerification() async {}
+
+  @override
+  Future<bool> refreshEmailVerified() async => false;
 
   @override
   Future<void> signOut() async {}
@@ -142,6 +152,65 @@ void main() {
       await tester.tap(find.text('Giriş yap'));
       await tester.pump();
       expect(auth.signInCalls, ['a@b.com|sifre123']);
+    });
+  });
+
+  group('RegisterScreen', () {
+    Future<_FakeAuth> pumpRegister(WidgetTester tester) async {
+      final auth = _FakeAuth();
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [authRepositoryProvider.overrideWithValue(auth)],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const RegisterScreen(),
+          ),
+        ),
+      );
+      return auth;
+    }
+
+    Future<void> fill(WidgetTester tester,
+        {String email = 'a@b.com',
+        String password = 'abc12345',
+        String confirm = 'abc12345'}) async {
+      await tester.enterText(find.byType(TextFormField).at(0), email);
+      await tester.enterText(find.byType(TextFormField).at(1), password);
+      await tester.enterText(find.byType(TextFormField).at(2), confirm);
+    }
+
+    testWidgets('onay kutuları işaretlenmeden hesap açılmaz', (tester) async {
+      final auth = await pumpRegister(tester);
+      await fill(tester);
+      await tester.tap(find.text('Hesap oluştur'));
+      await tester.pump();
+      expect(find.textContaining('18 yaşını doldurduğunu onaylamalı'), findsOneWidget);
+      expect(auth.registerCalls, isEmpty);
+    });
+
+    testWidgets('zayıf şifre ve uyuşmayan tekrar reddedilir', (tester) async {
+      final auth = await pumpRegister(tester);
+      await fill(tester, password: '12345678', confirm: 'baska');
+      await tester.tap(find.byType(CheckboxListTile).at(0));
+      await tester.tap(find.byType(CheckboxListTile).at(1));
+      await tester.tap(find.text('Hesap oluştur'));
+      await tester.pump();
+      expect(find.text('Şifre en az bir harf ve bir rakam içermeli.'), findsOneWidget);
+      expect(find.text('Şifreler aynı değil.'), findsOneWidget);
+      expect(auth.registerCalls, isEmpty);
+    });
+
+    testWidgets('geçerli form ve onaylarla register çağrılır', (tester) async {
+      final auth = await pumpRegister(tester);
+      await fill(tester);
+      await tester.tap(find.byType(CheckboxListTile).at(0));
+      await tester.tap(find.byType(CheckboxListTile).at(1));
+      await tester.tap(find.text('Hesap oluştur'));
+      await tester.pump();
+      expect(auth.registerCalls, ['a@b.com|abc12345']);
     });
   });
 }

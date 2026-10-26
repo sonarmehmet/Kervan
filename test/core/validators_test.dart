@@ -18,12 +18,22 @@ void main() {
 
   group('Validators.password', () {
     test('8 karakterden kısa şifreyi reddeder', () {
-      expect(Validators.password('1234567'), isNotNull);
+      expect(Validators.password('abc1234'), isNotNull);
       expect(Validators.password(''), isNotNull);
     });
 
-    test('8 karakter ve üstünü kabul eder', () {
-      expect(Validators.password('12345678'), isNull);
+    test('harf ve rakam içeren 8+ karakteri kabul eder', () {
+      expect(Validators.password('abc12345'), isNull);
+      expect(Validators.password('Şifre2026x'), isNull);
+    });
+
+    test('yalnızca rakam veya yalnızca harf olan şifreyi reddeder', () {
+      expect(Validators.password('12345678'), isNotNull);
+      expect(Validators.password('abcdefgh'), isNotNull);
+    });
+
+    test('128 karakterden uzun şifreyi reddeder', () {
+      expect(Validators.password('a1${'x' * 130}'), isNotNull);
     });
   });
 

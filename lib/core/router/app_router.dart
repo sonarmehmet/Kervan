@@ -7,6 +7,7 @@ import '../../features/authentication/presentation/forgot_password_screen.dart';
 import '../../features/authentication/presentation/login_screen.dart';
 import '../../features/authentication/presentation/register_screen.dart';
 import '../../features/authentication/presentation/splash_screen.dart';
+import '../../features/authentication/presentation/verify_email_screen.dart';
 import '../../features/event_creation/presentation/create_event_screen.dart';
 import '../../features/event_creation/presentation/edit_event_screen.dart';
 import '../../features/event_details/presentation/event_details_screen.dart';
@@ -23,6 +24,7 @@ import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/profile/presentation/profile_setup_screen.dart';
 import '../../features/settings/presentation/privacy_policy_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
+import '../../features/settings/presentation/terms_screen.dart';
 import '../widgets/app_shell.dart';
 import 'route_names.dart';
 
@@ -31,6 +33,7 @@ import 'route_names.dart';
 /// Yönlendirme kuralları (redirect):
 ///  1. Oturum/profil yükleniyor veya hatalı  -> splash
 ///  2. Giriş yok                              -> login (herkese açık yollar hariç)
+///  2b. Giriş var, e-posta doğrulanmamış       -> verify-email
 ///  3. Giriş var, profil yok                  -> profile-setup
 ///  4. Giriş ve profil var, giriş/kurulum yolundaysa -> discover
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -50,6 +53,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return RoutePaths.publicPaths.contains(location) ? null : RoutePaths.login;
     }
 
+    // E-posta doğrulanmadan hiçbir yere girilemez (kurallar da sunucuda bunu zorlar).
+    if (!user.emailVerified) {
+      if (location == RoutePaths.verifyEmail ||
+          RoutePaths.publicPaths.contains(location)) {
+        return null;
+      }
+      return RoutePaths.verifyEmail;
+    }
+
     final profile = ref.read(currentProfileProvider);
     if (profile.isLoading || profile.hasError) {
       return location == RoutePaths.splash ? null : RoutePaths.splash;
@@ -66,6 +78,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       RoutePaths.register,
       RoutePaths.forgotPassword,
       RoutePaths.profileSetup,
+      RoutePaths.verifyEmail,
     };
     if (entryPaths.contains(location)) return RoutePaths.discover;
     return null;
@@ -94,6 +107,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ForgotPasswordScreen(),
       ),
       GoRoute(
+        path: RoutePaths.verifyEmail,
+        builder: (context, state) => const VerifyEmailScreen(),
+      ),
+      GoRoute(
         path: RoutePaths.profileSetup,
         builder: (context, state) => const ProfileSetupScreen(),
       ),
@@ -114,6 +131,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.privacyPolicy,
         builder: (context, state) => const PrivacyPolicyScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.terms,
+        builder: (context, state) => const TermsScreen(),
       ),
 
       // --- Etkinlikler --- sabit yollar ':eventId' değişkeninden önce gelir.

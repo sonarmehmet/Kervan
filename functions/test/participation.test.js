@@ -16,7 +16,11 @@ if (!process.env.FIRESTORE_EMULATOR_HOST) {
   throw new Error("FIRESTORE_EMULATOR_HOST yok; testler emulator ile çalıştırılmalı.");
 }
 
-const call = (fn, uid, data) => fn.run({auth: uid ? {uid} : undefined, data});
+const call = (fn, uid, data, verified = true) =>
+  fn.run({
+    auth: uid ? {uid, token: {email_verified: verified}} : undefined,
+    data,
+  });
 
 let counter = 0;
 async function seedEvent({capacity = 2, requests = 0, startsInMs = 3600_000} = {}) {
@@ -78,6 +82,15 @@ test("onay: giriş yapmamış ve sahip olmayan reddedilir", async () => {
   const id = await seedEvent({requests: 1});
   assert.equal(await code(call(approveRequest, null, {eventId: id, userId: "u0"})), "unauthenticated");
   assert.equal(await code(call(approveRequest, "baskasi", {eventId: id, userId: "u0"})), "permission-denied");
+  assert.equal((await eventData(id)).acceptedCount, 0);
+});
+
+test("e-postası doğrulanmamış kullanıcı işlem yapamaz", async () => {
+  const id = await seedEvent({requests: 1});
+  assert.equal(
+    await code(call(approveRequest, "owner", {eventId: id, userId: "u0"}, false)),
+    "permission-denied"
+  );
   assert.equal((await eventData(id)).acceptedCount, 0);
 });
 

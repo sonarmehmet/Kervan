@@ -74,7 +74,10 @@ async function seed(callback) {
   });
 }
 
-const dbOf = (uid) => testEnv.authenticatedContext(uid).firestore();
+const dbOf = (uid) =>
+  testEnv.authenticatedContext(uid, {email_verified: true}).firestore();
+const unverifiedDb = (uid) =>
+  testEnv.authenticatedContext(uid, {email_verified: false}).firestore();
 const anonDb = () => testEnv.unauthenticatedContext().firestore();
 
 async function seedEvent(overrides = {}) {
@@ -581,3 +584,18 @@ describe("messages (etkinlik sohbeti)", () => {
 function addDocMsg(db, data) {
   return setDoc(doc(collection(db, "events", EVENT, "messages")), data);
 }
+
+describe("e-posta doğrulaması", () => {
+  it("doğrulanmamış kullanıcı profil, etkinlik ve sohbete erişemez", async () => {
+    await seedEvent();
+    const db = unverifiedDb(ALICE);
+    await assertFails(setDoc(doc(db, "users", ALICE), validProfile()));
+    await assertFails(setDoc(doc(db, "events", "yeni"), validEvent(ALICE)));
+    await assertFails(getDoc(doc(db, "events", EVENT)));
+    await assertFails(getDocs(collection(db, "events")));
+  });
+
+  it("doğrulanmış kullanıcı kendi profilini oluşturabilir", async () => {
+    await assertSucceeds(setDoc(doc(dbOf(ALICE), "users", ALICE), validProfile()));
+  });
+});

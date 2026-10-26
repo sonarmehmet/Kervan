@@ -93,7 +93,7 @@ final pushRegistrationProvider = Provider<void>((ref) {
     authStateProvider,
     (previous, next) {
       final user = next.valueOrNull;
-      if (user != null) {
+      if (user != null && user.emailVerified) {
         unawaited(ref.read(pushServiceProvider).registerForUser(user.uid));
       }
     },
