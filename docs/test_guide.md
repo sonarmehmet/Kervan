@@ -35,7 +35,7 @@
 
 | # | Senaryo | Beklenen |
 |---|---|---|
-| 1 | A kayıt olur, profil kurar | Keşfet ekranına düşer |
+| 1 | A kayıt olur (18+ ve koşulları işaretler), e-postasına gelen bağlantıyı açar | Doğrulama ekranı otomatik ilerler, profil kurulumu açılır; profil sonrası Keşfet |
 | 2 | A etkinlik oluşturur (kapasite 2) | Keşfet ve "Etkinliklerim"de görünür |
 | 3 | B kayıt olur, A'nın etkinliğini bulur | Tam adres gizli, "Katılma isteği gönder" var |
 | 4 | B istek gönderir | A'ya bildirim (uygulama içi + push) gelir |
@@ -46,13 +46,16 @@
 | 9 | A etkinliği iptal eder | Katılımcılara bildirim, sohbet yazmaya kapanır |
 | 10 | B, A'yı engeller / şikâyet eder | A'nın etkinlikleri B'de gizlenir; Firestore `reports`'ta kayıt oluşur |
 | 11 | B hesabını siler (Ayarlar) | B'nin verileri, mesajları silinir; giriş artık yapılamaz |
-| 12 | Push: uygulama kapalıyken bildirime dokun | Etkinlik detayı açılır |
+| 12 | Keşfet'te arama çubuğuna "futbol", "kadikoy" yaz | Türkçe harf farkı yok sayılır, eşleşenler listelenir |
+| 13 | Etkinlik oluştururken kategori seç | 148 kategori, gruplu ve aranabilir liste |
+| 14 | Doğrulama bağlantısını açmadan giriş yap | Doğrulama ekranından öteye geçemez |
+| 15 | Push: uygulama kapalıyken bildirime dokun | Etkinlik detayı açılır |
 
 Bir şey çalışmazsa: ekran görüntüsü + `flutter run` konsol çıktısı gönder.
 
 ## C. Bilinen sınırlar (bu sürüm)
 
 - Haritadan konum seçme yok; adres yazılır, "Haritada aç" harici harita uygulamasını açar.
-- Profil fotoğrafı yok. Sohbet mesajları için push yok.
+- Profil fotoğrafı yok. Google ile giriş yok (yalnızca e-posta/şifre). Sohbet mesajları için push yok.
 - iOS yapılandırılmadı.
 - Gizlilik metni taslak; boş alanları doldurup avukata kontrol ettir.
