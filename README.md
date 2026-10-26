@@ -14,13 +14,25 @@ Birisi etkinlik oluşturur, diğerleri katılım talebi gönderir, etkinlik sahi
 
 ## Durum
 
-- A bölümü, 1. adım (core + giriş + profil) yazıldı: tema, router, ortak widget'lar, sabitler,
-  e-posta/şifre ile kayıt-giriş-şifre sıfırlama, profil oluşturma/düzenleme.
-- A bölümü, 2. adım: ayarlar, hesap silme (deleteAccount fonksiyonunu çağırır), engelleme ve şikâyet.
-- Henüz yazılmadı: etkinlikler (B), katılım ve sunucu (C). Gizlilik politikası metni YER TUTUCUDUR.
-- Router'da B ve C ekranları şimdilik `PlaceholderScreen` ile duruyor.
-- DOĞRULANDI (Flutter 3.44, Dart 3.12): `flutter pub get` başarılı, `flutter analyze` hatasız, `flutter test` 14 test geçti.
-  Minimum sürüm: Flutter 3.33, Dart 3.9. Henüz telefonda çalıştırılıp denenmedi ve Firebase bağlanmadı.
+Tüm ilk sürüm özellikleri yazıldı (derlenmemiş Flutter kodu hariç aşağıdaki notlara bak):
+
+- Hesap: kayıt, giriş, şifre sıfırlama, profil, ayarlar, hesap silme, engelleme, şikâyet
+- Etkinlik: oluşturma, düzenleme, iptal, keşif (şehir/kategori/tarih filtreleri), detay, Etkinliklerim
+- Katılım: talep gönder/geri çek, sahip onay/red, katılımcı listesi, ayrılma
+- Bildirimler: uygulama içi liste, okundu işareti, rozet
+- Sunucu: Cloud Functions (TypeScript) ve Firestore güvenlik kuralları
+
+Doğrulama durumu (dürüst özet):
+
+| Parça | Durum |
+|---|---|
+| Flutter A bölümü (core, giriş, profil, ayarlar, moderasyon) | `flutter analyze` temiz, 14 test geçti (kullanıcı makinesinde) |
+| Flutter etkinlik/katılım/bildirim ekranları | Yazıldı, henüz DERLENMEDİ |
+| Cloud Functions | `tsc` ile derlendi, 6 fonksiyon yükleniyor; emulator ile çalıştırılmadı |
+| `firestore.rules` testleri (`rules_test/`) | Yazıldı, henüz ÇALIŞTIRILMADI (emulator bu ortamda indirilemedi) |
+
+Henüz yok: harita, FCM push bildirimi, Android yayın imzası, gerçek gizlilik politikası metni
+(mevcut metin yer tutucudur), uygulama ikonu.
 
 ## İlk kurulum (kendi bilgisayarında)
 
