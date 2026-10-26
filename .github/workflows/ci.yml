@@ -117,11 +117,18 @@ jobs:
         with:
           channel: stable
           cache: true
-      - name: Android klasörünü oluştur
+      - name: Android klasörünü hazırla (betik + sahte google-services.json)
         run: |
-          flutter create . --project-name rota --org com.rota --platforms android
-          git checkout -- lib pubspec.yaml test || true
-          rm -f test/widget_test.dart
+          bash scripts/setup_android.sh com.rota
+          cat > android/app/google-services.json <<'JSON'
+          {"project_info":{"project_number":"1","project_id":"demo-rota","storage_bucket":"demo-rota.appspot.com"},
+           "client":[{"client_info":{"mobilesdk_app_id":"1:1:android:1","android_client_info":{"package_name":"com.rota.rota"}},
+           "api_key":[{"current_key":"fake"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],
+           "configuration_version":"1"}
+          JSON
+          bash scripts/setup_android.sh com.rota
+          { echo "--- gradle ---"; grep -n "minSdk\|google-services" android/app/build.gradle* android/settings.gradle*
+            grep -n "POST_NOTIFICATIONS\|android:label" android/app/src/main/AndroidManifest.xml; } > setup.txt
       - run: flutter pub get
       - name: flutter build apk
         run: |
@@ -130,6 +137,7 @@ jobs:
           status=$?
           level=notice
           if [ $status -ne 0 ]; then level=error; fi
-          msg=$(tail -c 30000 build.txt | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+          { cat setup.txt; tail -c 20000 build.txt; } > all.txt
+          msg=$(cat all.txt | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
           echo "::${level} title=build-output::${msg}"
           exit $status
