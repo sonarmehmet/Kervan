@@ -1,3 +1,6 @@
+> **Not:** Üç hesapla paralel çalışma planı ilk sürüm için kullanılmadı; A, B ve C bölümlerinin tamamı tek oturumda
+> yazıldı. Bu dosya ileride ekip çalışması için referans olarak duruyor.
+
 # Kervan — Üç Claude ile Paralel Çalışma Planı
 
 ## Altın kurallar

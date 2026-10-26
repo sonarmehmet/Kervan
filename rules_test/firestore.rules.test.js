@@ -164,6 +164,42 @@ describe("users", () => {
   });
 });
 
+describe("fcmTokens (push jetonları)", () => {
+  const tokenRef = (db, uid, token = "tok:abc_123") =>
+    doc(db, "users", uid, "fcmTokens", token);
+
+  it("kullanıcı kendi jetonunu kaydedebilir", async () => {
+    await assertSucceeds(
+      setDoc(tokenRef(dbOf(ALICE), ALICE), {platform: "android", updatedAt: serverTimestamp()})
+    );
+  });
+
+  it("başkası adına jeton kaydedilemez", async () => {
+    await assertFails(
+      setDoc(tokenRef(dbOf(BOB), ALICE), {platform: "android", updatedAt: serverTimestamp()})
+    );
+  });
+
+  it("geçersiz platform veya fazladan alan reddedilir", async () => {
+    await assertFails(
+      setDoc(tokenRef(dbOf(ALICE), ALICE), {platform: "windows", updatedAt: serverTimestamp()})
+    );
+    await assertFails(
+      setDoc(tokenRef(dbOf(ALICE), ALICE), {
+        platform: "ios",
+        updatedAt: serverTimestamp(),
+        extra: 1,
+      })
+    );
+  });
+
+  it("kullanıcı kendi jetonunu siler, başkasınınkini okuyamaz", async () => {
+    await seed((db) => setDoc(tokenRef(db, ALICE), {platform: "android", updatedAt: Timestamp.now()}));
+    await assertFails(getDoc(tokenRef(dbOf(BOB), ALICE)));
+    await assertSucceeds(deleteDoc(tokenRef(dbOf(ALICE), ALICE)));
+  });
+});
+
 describe("events", () => {
   it("etkinlik ve tam adres tek batch ile oluşturulabilir", async () => {
     const db = dbOf(OWNER);

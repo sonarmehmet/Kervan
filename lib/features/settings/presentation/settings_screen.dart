@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/errors/error_mapper.dart';
 import '../../../core/router/route_names.dart';
 import '../../authentication/data/auth_repository.dart';
+import '../../authentication/data/session_service.dart';
 import '../data/account_repository.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -20,7 +21,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _signOut() async {
     setState(() => _busy = true);
     try {
-      await ref.read(authRepositoryProvider).signOut();
+      await ref.read(sessionServiceProvider).signOut();
       // Router oturum kapanınca giriş ekranına yönlendirir.
     } catch (error) {
       _showError(error);

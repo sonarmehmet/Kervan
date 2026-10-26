@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/config/app_config.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/notifications/data/push_service.dart';
 
 class KervanApp extends ConsumerWidget {
   const KervanApp({super.key});
@@ -12,6 +13,7 @@ class KervanApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    ref.watch(pushRegistrationProvider); // oturum açılınca push jetonunu kaydeder
     return MaterialApp.router(
       title: AppConfig.appName,
       debugShowCheckedModeBanner: false,

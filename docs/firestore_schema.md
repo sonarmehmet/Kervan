@@ -24,6 +24,10 @@ Tüm alan adları İngilizce, `camelCase`. Tarihler Firestore `Timestamp`.
 Alt koleksiyon: `users/{uid}/blocks/{blockedUid}` — alanlar: `createdAt` (timestamp).
 Yalnızca `uid` sahibi okur/yazar.
 
+Alt koleksiyon: `users/{uid}/fcmTokens/{token}` — belge kimliği FCM jetonunun kendisi.
+Alanlar: `platform` (`android` | `ios`), `updatedAt` (sunucu zamanı). Yalnızca `uid` sahibi yazar/okur/siler.
+Push gönderimini `onNotificationCreated` Cloud Function'ı yapar; geçersiz jetonları siler.
+
 Silme: istemci silemez. Hesap silme `deleteAccount` Cloud Function ile yapılır.
 
 ## 2. `events/{eventId}`

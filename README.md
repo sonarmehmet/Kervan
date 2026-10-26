@@ -19,7 +19,8 @@ Tüm ilk sürüm özellikleri yazıldı (derlenmemiş Flutter kodu hariç aşağ
 - Hesap: kayıt, giriş, şifre sıfırlama, profil, ayarlar, hesap silme, engelleme, şikâyet
 - Etkinlik: oluşturma, düzenleme, iptal, keşif (şehir/kategori/tarih filtreleri), detay, Etkinliklerim
 - Katılım: talep gönder/geri çek, sahip onay/red, katılımcı listesi, ayrılma
-- Bildirimler: uygulama içi liste, okundu işareti, rozet
+- Bildirimler: uygulama içi liste, okundu işareti, rozet, push bildirimi (FCM)
+- Etkinlik adresini harita uygulamasında açma (API anahtarı gerekmez)
 - Sunucu: Cloud Functions (TypeScript) ve Firestore güvenlik kuralları
 
 Doğrulama durumu (dürüst özet):
@@ -31,8 +32,12 @@ Doğrulama durumu (dürüst özet):
 | Cloud Functions | `tsc` ile derlendi, 6 fonksiyon yükleniyor; emulator ile çalıştırılmadı |
 | `firestore.rules` testleri (`rules_test/`) | Yazıldı, henüz ÇALIŞTIRILMADI (emulator bu ortamda indirilemedi) |
 
-Henüz yok: harita, FCM push bildirimi, Android yayın imzası, gerçek gizlilik politikası metni
-(mevcut metin yer tutucudur), uygulama ikonu.
+Henüz yok: harita üzerinde konum seçme, bildirime dokununca etkinliği açma, Android yayın imzası,
+gerçek gizlilik politikası metni (uygulamadaki metin yer tutucudur; taslak: `docs/privacy_policy_draft.md`),
+uygulama ikonu. Yayın adımları: `docs/release_checklist.md`.
+
+Push bildirimi için Android'de `AndroidManifest.xml` içine şu satırı ekle (Android 13+):
+`<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>`
 
 ## İlk kurulum (kendi bilgisayarında)
 

@@ -70,6 +70,16 @@ service cloud.firestore {
         allow read, delete: if isSelf(uid);
         allow create, update: if isSelf(uid) && blockedUid != uid;
       }
+
+      // Push bildirimi jetonları (belge kimliği = FCM jetonu). Gönderimi Cloud Functions yapar.
+      match /fcmTokens/{token} {
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid)
+          && request.resource.data.keys().hasOnly(['platform', 'updatedAt'])
+          && request.resource.data.keys().hasAll(['platform', 'updatedAt'])
+          && request.resource.data.platform in ['android', 'ios']
+          && request.resource.data.updatedAt == request.time;
+      }
     }
 
     // ---------- Etkinlikler ----------

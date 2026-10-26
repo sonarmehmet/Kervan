@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/app_exception.dart';
 import '../../authentication/data/auth_repository.dart';
+import '../../authentication/data/session_service.dart';
 import '../data/profile_repository.dart';
 import '../data/user_profile.dart';
 import 'profile_form.dart';
@@ -27,7 +28,7 @@ class ProfileSetupScreen extends ConsumerWidget {
         title: const Text('Profilini oluştur'),
         actions: [
           TextButton(
-            onPressed: () => ref.read(authRepositoryProvider).signOut(),
+            onPressed: () => ref.read(sessionServiceProvider).signOut(),
             child: const Text('Çıkış yap'),
           ),
         ],

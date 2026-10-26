@@ -17,6 +17,10 @@ abstract final class FirestorePaths {
   static String userBlock(String uid, String blockedUid) =>
       '$users/$uid/$blocks/$blockedUid';
 
+  static const String fcmTokens = 'fcmTokens';
+  static String userFcmToken(String uid, String token) =>
+      '$users/$uid/$fcmTokens/$token';
+
   static String event(String eventId) => '$events/$eventId';
   static String eventLocation(String eventId) =>
       '$events/$eventId/$privateDocs/$locationDocId';
