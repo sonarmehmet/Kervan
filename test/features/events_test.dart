@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kervan/features/event_creation/data/event_validators.dart';
-import 'package:kervan/features/event_discovery/data/event_filter.dart';
-import 'package:kervan/features/notifications/data/notification_item.dart';
-import 'package:kervan/features/participation/data/join_request.dart';
+import 'package:rota/features/event_creation/data/event_validators.dart';
+import 'package:rota/features/event_discovery/data/event_filter.dart';
+import 'package:rota/features/notifications/data/notification_item.dart';
+import 'package:rota/features/participation/data/join_request.dart';
 
 void main() {
   group('EventValidators', () {

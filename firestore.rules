@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Kervan - Firestore güvenlik kuralları
+// Rota - Firestore güvenlik kuralları
 //
 // İlkeler:
 //  - Yetki kontrolü burada, sunucu tarafında yapılır; arayüz kontrolü yeterli sayılmaz.

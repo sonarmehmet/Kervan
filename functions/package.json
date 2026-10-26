@@ -1,5 +1,5 @@
 {
-  "name": "kervan-functions",
+  "name": "rota-functions",
   "private": true,
   "main": "lib/index.js",
   "engines": {

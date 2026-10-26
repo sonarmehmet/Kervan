@@ -1,4 +1,4 @@
-# Kervan
+# Rota
 
 Birlikte aktivite yapmak isteyen insanları buluşturan sosyal etkinlik uygulaması.
 Birisi etkinlik oluşturur, diğerleri katılım talebi gönderir, etkinlik sahibi onaylar veya reddeder.
@@ -42,7 +42,7 @@ Push bildirimi için Android'de `AndroidManifest.xml` içine şu satırı ekle (
 ## İlk kurulum (kendi bilgisayarında)
 
 1. Flutter SDK ve Firebase CLI kur.
-2. `flutter create . --project-name kervan --org com.example --platforms android,ios`
+2. `flutter create . --project-name rota --org com.example --platforms android,ios`
    (mevcut dosyaların üzerine yazmaz; `pubspec.yaml` farklı çıkarsa mevcut olanı koru)
 3. Firebase projeni oluştur, `flutterfire configure` çalıştır (`lib/firebase_options.dart` üretilir, commit edilmez).
 4. `flutter pub get`

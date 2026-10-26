@@ -1,4 +1,4 @@
-# Kervan — Google Play Yayın Kontrol Listesi
+# Rota — Google Play Yayın Kontrol Listesi
 
 Bu liste sırayla ilerlemen için hazırlandı. Kuralların bir kısmı zamanla değişir; ilgili satırlardaki
 "doğrula" notlarını Play Console'daki güncel metinle karşılaştır.
@@ -13,7 +13,7 @@ Bu liste sırayla ilerlemen için hazırlandı. Kuralların bir kısmı zamanla 
 ## 2. Uygulama kimliği ve imza
 
 - [ ] Uygulama kimliği (`applicationId`) kesinleştir. Play'e çıktıktan sonra DEĞİŞTİRİLEMEZ. (`flutter create`
-      komutundaki `--org` + proje adından oluşur, örn. `com.kervan.kervan`.)
+      komutundaki `--org` + proje adından oluşur, örn. `com.rota.rota`.)
 - [ ] `android/app/build.gradle(.kts)` içinde `minSdk` en az 23 (Firebase şartı).
 - [ ] Yükleme anahtarı (upload keystore) oluştur ve GÜVENLİ yerde yedekle:
       `keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload`

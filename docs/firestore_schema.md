@@ -1,4 +1,4 @@
-# Kervan — Firestore Veri Şeması (ORTAK SÖZLEŞME)
+# Rota — Firestore Veri Şeması (ORTAK SÖZLEŞME)
 
 Bu dosya üç geliştiricinin (A, B, C) uyması gereken tek doğru kaynaktır.
 `firestore.rules` bu şemaya göre yazılmıştır. Şemayı değiştirmek için önce bu dosya

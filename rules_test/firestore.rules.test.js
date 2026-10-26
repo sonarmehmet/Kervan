@@ -1,4 +1,4 @@
-// Kervan - firestore.rules testleri (Firebase Emulator ile çalışır).
+// Rota - firestore.rules testleri (Firebase Emulator ile çalışır).
 // Çalıştırma: rules_test klasöründe `npm install` sonra `npm test`.
 const {readFileSync} = require("node:fs");
 const {before, after, beforeEach, describe, it} = require("node:test");
@@ -92,7 +92,7 @@ async function seedEvent(overrides = {}) {
 
 before(async () => {
   testEnv = await initializeTestEnvironment({
-    projectId: "demo-kervan",
+    projectId: "demo-rota",
     firestore: {
       rules: readFileSync("firestore.rules", "utf8"),
       host,

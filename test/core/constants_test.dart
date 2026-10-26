@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kervan/core/constants/event_categories.dart';
-import 'package:kervan/core/constants/firestore_paths.dart';
-import 'package:kervan/core/constants/turkey_cities.dart';
+import 'package:rota/core/constants/event_categories.dart';
+import 'package:rota/core/constants/firestore_paths.dart';
+import 'package:rota/core/constants/turkey_cities.dart';
 
 void main() {
   group('TurkeyCities', () {

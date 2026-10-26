@@ -19,7 +19,7 @@ Future<void> main() async {
     return;
   }
 
-  runApp(const ProviderScope(child: KervanApp()));
+  runApp(const ProviderScope(child: RotaApp()));
 }
 
 /// Firebase yapılandırması yoksa çökmek yerine ne yapılacağını gösterir.

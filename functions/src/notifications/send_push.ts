@@ -31,7 +31,7 @@ export function pushText(
     };
   default:
     return {
-      title: "Kervan",
+      title: "Rota",
       body: `"${eventTitle}" etkinliğiyle ilgili bir güncelleme var.`,
     };
   }

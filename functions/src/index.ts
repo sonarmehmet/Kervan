@@ -1,4 +1,4 @@
-// Kervan Cloud Functions girişi. Sözleşme: docs/firestore_schema.md
+// Rota Cloud Functions girişi. Sözleşme: docs/firestore_schema.md
 
 export {approveRequest} from "./participation/approve_request";
 export {rejectRequest} from "./participation/reject_request";

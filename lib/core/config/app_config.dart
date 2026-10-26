@@ -1,6 +1,6 @@
 /// Uygulama genelinde kullanılan sabit ayarlar.
 abstract final class AppConfig {
-  static const String appName = 'Kervan';
+  static const String appName = 'Rota';
 
   /// Cloud Functions bölgesi. `functions/` tarafındaki bölgeyle aynı olmalı.
   static const String functionsRegion = 'europe-west1';

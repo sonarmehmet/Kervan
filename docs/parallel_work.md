@@ -1,7 +1,7 @@
 > **Not:** Üç hesapla paralel çalışma planı ilk sürüm için kullanılmadı; A, B ve C bölümlerinin tamamı tek oturumda
 > yazıldı. Bu dosya ileride ekip çalışması için referans olarak duruyor.
 
-# Kervan — Üç Claude ile Paralel Çalışma Planı
+# Rota — Üç Claude ile Paralel Çalışma Planı
 
 ## Altın kurallar
 
@@ -28,7 +28,7 @@
 
 ## Başlangıç sırası
 
-0. Kullanıcı GitHub'da private `kervan` deposu açar, bu klasörü yükler (`main`).
+0. Kullanıcı GitHub'da private `rota` deposu açar, bu klasörü yükler (`main`).
 1. **A önce** `core/` iskeletini ve `lib/core/constants/` dosyalarını yazıp `main`'e PR ile birleştirir
    (tema, router, ortak widget'lar, `firestore_paths.dart`, `event_categories.dart`, `turkey_cities.dart`).
    B ve C bu sırada şu işleri yapabilir: B model sınıflarını (`Event`), C Cloud Functions ve rules.
@@ -40,7 +40,7 @@
 ## Claude A için başlangıç talimatı
 
 ```
-Sen Kervan adlı Flutter + Firebase sosyal etkinlik uygulamasının A bölümünden sorumlusun
+Sen Rota adlı Flutter + Firebase sosyal etkinlik uygulamasının A bölümünden sorumlusun
 (hesap ve güvenlik). Benimle tamamen Türkçe konuş; kod, dosya ve değişken adları İngilizce.
 
 Önce şunları oku: docs/firestore_schema.md, docs/parallel_work.md, firestore.rules, pubspec.yaml.
@@ -69,7 +69,7 @@ tamamlanan/kalan işleri Türkçe raporla.
 ## Claude B için başlangıç talimatı
 
 ```
-Sen Kervan adlı Flutter + Firebase sosyal etkinlik uygulamasının B bölümünden sorumlusun
+Sen Rota adlı Flutter + Firebase sosyal etkinlik uygulamasının B bölümünden sorumlusun
 (etkinlikler). Benimle tamamen Türkçe konuş; kod, dosya ve değişken adları İngilizce.
 
 Önce şunları oku: docs/firestore_schema.md, docs/parallel_work.md, firestore.rules, pubspec.yaml.
@@ -99,7 +99,7 @@ Kurallar: şemadan sapma; test sonucu uydurma; Flutter çalıştırılamıyorsa 
 ## Claude C için başlangıç talimatı
 
 ```
-Sen Kervan adlı Flutter + Firebase sosyal etkinlik uygulamasının C bölümünden sorumlusun
+Sen Rota adlı Flutter + Firebase sosyal etkinlik uygulamasının C bölümünden sorumlusun
 (katılım sistemi ve sunucu tarafı). Benimle tamamen Türkçe konuş; kod, dosya ve değişken adları İngilizce.
 
 Önce şunları oku: docs/firestore_schema.md, docs/parallel_work.md, firestore.rules, firebase.json.

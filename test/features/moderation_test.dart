@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kervan/features/moderation/data/report_repository.dart';
+import 'package:rota/features/moderation/data/report_repository.dart';
 
 void main() {
   test('şikâyet nedenleri firestore.rules ile aynı kimlikleri kullanır', () {

@@ -90,7 +90,7 @@ jobs:
           cache: true
       - name: Android klasörünü oluştur
         run: |
-          flutter create . --project-name kervan --org com.kervan --platforms android
+          flutter create . --project-name rota --org com.rota --platforms android
           git checkout -- lib pubspec.yaml test || true
           rm -f test/widget_test.dart
       - run: flutter pub get

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Kervan teması (Material 3). Ana renk: sıcak turuncu-kiremit.
+/// Rota teması (Material 3). Ana renk: sıcak turuncu-kiremit.
 abstract final class AppTheme {
   static const Color _seed = Color(0xFFC8641E);
 

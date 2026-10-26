@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kervan/core/utils/validators.dart';
+import 'package:rota/core/utils/validators.dart';
 
 void main() {
   group('Validators.email', () {

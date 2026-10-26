@@ -1,4 +1,4 @@
-# Kervan Gizlilik Politikası ve KVKK Aydınlatma Metni — TASLAK
+# Rota Gizlilik Politikası ve KVKK Aydınlatma Metni — TASLAK
 
 > **UYARI:** Bu metin hukuki danışmanlık değildir; bir başlangıç taslağıdır. Yayınlamadan önce bir avukata
 > veya KVKK uzmanına inceletin, köşeli parantezli `[...]` alanları kendi bilgilerinizle doldurun.
@@ -63,7 +63,7 @@ Başvuru: [e-posta adresi]
 
 ## 8. Çocuklar
 
-Kervan 18 yaşından küçüklere yönelik değildir. 18 yaşından küçük bir kullanıcının hesabını fark edersek sileriz.
+Rota 18 yaşından küçüklere yönelik değildir. 18 yaşından küçük bir kullanıcının hesabını fark edersek sileriz.
 
 ## 9. Güvenlik
 

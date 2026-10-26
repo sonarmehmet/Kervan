@@ -14,7 +14,7 @@ import 'route_names.dart';
 /// - Uygulama arka plandaysa: `onMessageOpenedApp`
 /// - Uygulama kapalıyken bildirimle açıldıysa: `getInitialMessage`; oturum ve profil yüklenince açılır.
 /// Sunucu (`send_push.ts`) bildirim verisine `eventId` koyar.
-/// `KervanApp` içinde izlenir.
+/// `RotaApp` içinde izlenir.
 final pushNavigationProvider = Provider<void>((ref) {
   final router = ref.watch(appRouterProvider);
 

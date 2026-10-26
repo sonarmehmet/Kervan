@@ -87,7 +87,7 @@ final pushServiceProvider = Provider<PushService>((ref) {
   return service;
 });
 
-/// Oturum açılınca push kaydını yapar. `KervanApp` içinde izlenir.
+/// Oturum açılınca push kaydını yapar. `RotaApp` içinde izlenir.
 final pushRegistrationProvider = Provider<void>((ref) {
   ref.listen<AsyncValue<User?>>(
     authStateProvider,

@@ -8,8 +8,8 @@ import 'core/router/push_navigation.dart';
 import 'core/theme/app_theme.dart';
 import 'features/notifications/data/push_service.dart';
 
-class KervanApp extends ConsumerWidget {
-  const KervanApp({super.key});
+class RotaApp extends ConsumerWidget {
+  const RotaApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
