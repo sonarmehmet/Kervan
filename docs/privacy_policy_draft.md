@@ -21,6 +21,7 @@ Adres: [Adres]
 | Etkinlik bilgileri (başlık, açıklama, kategori, tarih, şehir, ilçe, kapasite) | Etkinlik oluşturduğunda | Giriş yapmış tüm kullanıcılar |
 | Etkinlik buluşma adresi (tam adres) | Etkinlik oluştururken sen yazarsın | Yalnızca etkinlik sahibi ve katılımı onaylanan kişiler |
 | Katılım talepleri ve katılımcı listesi | Talep gönderdiğinde | Talep sahibi ve etkinlik sahibi; katılımcı listesini sahip ve onaylı katılımcılar |
+| Etkinlik sohbeti mesajları | Sohbette yazdığında | Yalnızca etkinlik sahibi ve onaylı katılımcılar |
 | Bildirimler | Uygulama olaylarından üretilir | Yalnızca ilgili kullanıcı |
 | Engellenen kullanıcılar | Sen engellediğinde | Yalnızca sen |
 | Şikâyetler | Sen şikâyet ettiğinde | Yalnızca uygulama yöneticileri |
@@ -45,7 +46,7 @@ paylaşılmaz.
 
 ## 5. Saklama süresi
 
-Hesabınız açık olduğu sürece saklanır. Hesabınızı sildiğinizde profil, engel listesi, bildirimler ve
+Hesabınız açık olduğu sürece saklanır. Hesabınızı sildiğinizde profil, engel listesi, bildirimler, sohbet mesajları ve
 gönderdiğiniz katılım talepleri silinir; oluşturduğunuz etkinlikler iptal edilir, sahip adı "Silinmiş kullanıcı"
 olarak anonimleştirilir ve tam adres silinir. Şikâyet kayıtları, güvenlik amacıyla [süre] boyunca saklanabilir.
 
