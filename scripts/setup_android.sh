@@ -46,16 +46,16 @@ if [ -f android/app/google-services.json ]; then
   done
   if [ -n "$SETTINGS" ] && ! grep -q "com.google.gms.google-services" "$SETTINGS"; then
     if [[ "$SETTINGS" == *.kts ]]; then
-      sed -i '0,/id("org.jetbrains.kotlin.android")/s//&\n    id("com.google.gms.google-services") version "4.4.2" apply false/' "$SETTINGS"
+      sed -i '0,/id("org.jetbrains.kotlin.android")/s//id("com.google.gms.google-services") version "4.4.2" apply false\n    &/' "$SETTINGS"
     else
-      sed -i "0,/id \"org.jetbrains.kotlin.android\"/s//&\n    id \"com.google.gms.google-services\" version \"4.4.2\" apply false/" "$SETTINGS"
+      sed -i "0,/id \"org.jetbrains.kotlin.android\"/s//id \"com.google.gms.google-services\" version \"4.4.2\" apply false\n    &/" "$SETTINGS"
     fi
   fi
   if ! grep -q "com.google.gms.google-services" "$GRADLE_APP"; then
     if [[ "$GRADLE_APP" == *.kts ]]; then
-      sed -i '0,/id("dev.flutter.flutter-gradle-plugin")/s//&\n    id("com.google.gms.google-services")/' "$GRADLE_APP"
+      sed -i '0,/id("dev.flutter.flutter-gradle-plugin")/s//id("com.google.gms.google-services")\n    &/' "$GRADLE_APP"
     else
-      sed -i "0,/id \"dev.flutter.flutter-gradle-plugin\"/s//&\n    id \"com.google.gms.google-services\"/" "$GRADLE_APP"
+      sed -i "0,/id \"dev.flutter.flutter-gradle-plugin\"/s//id \"com.google.gms.google-services\"\n    &/" "$GRADLE_APP"
     fi
   fi
   echo "Google Services eklentisi bağlandı."
