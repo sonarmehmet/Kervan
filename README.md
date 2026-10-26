@@ -32,7 +32,7 @@ Doğrulama durumu (dürüst özet):
 | Cloud Functions | `tsc` ile derlendi, 6 fonksiyon yükleniyor; emulator ile çalıştırılmadı |
 | `firestore.rules` testleri (`rules_test/`) | Yazıldı, henüz ÇALIŞTIRILMADI (emulator bu ortamda indirilemedi) |
 
-Henüz yok: harita üzerinde konum seçme, bildirime dokununca etkinliği açma, Android yayın imzası,
+Henüz yok: harita üzerinde konum seçme, Android yayın imzası,
 gerçek gizlilik politikası metni (uygulamadaki metin yer tutucudur; taslak: `docs/privacy_policy_draft.md`),
 uygulama ikonu. Yayın adımları: `docs/release_checklist.md`.
 

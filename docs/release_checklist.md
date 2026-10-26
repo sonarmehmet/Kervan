@@ -82,7 +82,7 @@ Bu liste sırayla ilerlemen için hazırlandı. Kuralların bir kısmı zamanla 
 ## 9. Sonraki sürümler için (bilerek ertelendi)
 
 - Harita üzerinde konum seçme (Google Maps API anahtarı + faturalandırma gerekir).
-- Bildirime dokununca ilgili etkinliği açma (şimdilik yalnızca bildirim görünür).
+- Bildirime dokununca etkinliği açma YAZILDI (derlenmedi, gerçek cihazda test edilmeli).
 - Etkinlik sohbeti, gelişmiş arama/mesafe filtresi.
 - Crashlytics ve Analytics (gizlilik politikası ve veri güvenliği formunu güncellemeyi unutma).
 - iOS: Apple Developer hesabı (yıllık ücret) ve Mac/derleme servisi gerekir.
