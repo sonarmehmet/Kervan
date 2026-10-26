@@ -59,7 +59,7 @@ Future<void> _pumpCard(WidgetTester tester, Event event,
     {VoidCallback? onTap}) {
   return tester.pumpWidget(
     MaterialApp(
-      theme: AppTheme.light(),
+      theme: AppTheme.light,
       home: Scaffold(body: EventCard(event: event, onTap: onTap ?? () {})),
     ),
   );
@@ -108,7 +108,7 @@ void main() {
         ProviderScope(
           overrides: [authRepositoryProvider.overrideWithValue(auth)],
           child: MaterialApp(
-            theme: AppTheme.light(),
+            theme: AppTheme.light,
             home: const LoginScreen(),
           ),
         ),
