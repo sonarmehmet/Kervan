@@ -97,7 +97,7 @@ class EventCategory {
     EventCategory('cricket', 'Kriket', Icons.sports_cricket, _gsports),
     EventCategory('walking', 'Yürüyüş', Icons.directions_walk, _goutdoor),
     EventCategory('hiking', 'Doğa yürüyüşü', Icons.hiking, _goutdoor),
-    EventCategory('camping', 'Kamp', Icons.camping, _goutdoor),
+    EventCategory('camping', 'Kamp', Icons.nights_stay, _goutdoor),
     EventCategory('picnic', 'Piknik', Icons.park, _goutdoor),
     EventCategory('fishing', 'Balık tutma', Icons.phishing, _goutdoor),
     EventCategory('bird_watching', 'Kuş gözlemi', Icons.visibility, _goutdoor),
