@@ -6,6 +6,7 @@ import '../../../core/constants/turkey_cities.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_formatters.dart';
 import '../data/event_filter.dart';
+import 'category_picker.dart';
 import '../data/event_query_repository.dart';
 
 /// Şehir, kategori ve tarih filtresi alt sayfası.
@@ -94,22 +95,30 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
               const SizedBox(height: 16),
               Text('Kategori', style: theme.textTheme.titleSmall),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final category in EventCategory.all)
-                    ChoiceChip(
-                      avatar: Icon(category.icon, size: 18),
-                      label: Text(category.label),
-                      selected: _draft.categoryId == category.id,
-                      onSelected: (selected) => setState(
-                        () => _draft = selected
-                            ? _draft.copyWith(categoryId: category.id)
-                            : _draft.copyWith(clearCategory: true),
-                      ),
-                    ),
-                ],
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final picked = await showCategoryPicker(
+                    context,
+                    selectedId: _draft.categoryId,
+                    allowClear: _draft.categoryId != null,
+                  );
+                  if (picked == null) return;
+                  setState(
+                    () => _draft = picked.isEmpty
+                        ? _draft.copyWith(clearCategory: true)
+                        : _draft.copyWith(categoryId: picked),
+                  );
+                },
+                icon: Icon(
+                  _draft.categoryId == null
+                      ? Icons.category_outlined
+                      : EventCategory.byId(_draft.categoryId!).icon,
+                ),
+                label: Text(
+                  _draft.categoryId == null
+                      ? 'Kategori seç'
+                      : EventCategory.byId(_draft.categoryId!).label,
+                ),
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(

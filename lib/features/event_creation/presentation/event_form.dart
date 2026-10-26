@@ -6,6 +6,7 @@ import '../../../core/errors/error_mapper.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_formatters.dart';
 import '../../event_details/data/event.dart';
+import '../../event_discovery/presentation/category_picker.dart';
 import '../data/event_input.dart';
 import '../data/event_validators.dart';
 
@@ -161,21 +162,35 @@ class _EventFormState extends State<EventForm> {
           const SizedBox(height: 8),
           Text('Kategori', style: theme.textTheme.titleSmall),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final category in EventCategory.all)
-                ChoiceChip(
-                  avatar: Icon(category.icon, size: 18),
-                  label: Text(category.label),
-                  selected: _category == category.id,
-                  onSelected: (_) => setState(() {
-                    _category = category.id;
-                    _categoryError = null;
-                  }),
-                ),
-            ],
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () async {
+              final picked =
+                  await showCategoryPicker(context, selectedId: _category);
+              if (picked == null || picked.isEmpty) return;
+              setState(() {
+                _category = picked;
+                _categoryError = null;
+              });
+            },
+            child: InputDecorator(
+              decoration: AppTheme.inputDecoration(label: 'Kategori').copyWith(
+                suffixIcon: const Icon(Icons.arrow_drop_down),
+                errorText: null,
+              ),
+              child: _category == null
+                  ? Text(
+                      'Kategori seç (148 seçenek, aranabilir)',
+                      style: TextStyle(color: theme.hintColor),
+                    )
+                  : Row(
+                      children: [
+                        Icon(EventCategory.byId(_category!).icon, size: 20),
+                        const SizedBox(width: 8),
+                        Flexible(child: Text(EventCategory.byId(_category!).label)),
+                      ],
+                    ),
+            ),
           ),
           if (_categoryError != null)
             Padding(

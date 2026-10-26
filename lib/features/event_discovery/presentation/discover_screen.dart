@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/constants/event_categories.dart';
 import '../../../core/errors/error_mapper.dart';
 import '../../../core/router/route_names.dart';
+import '../../../core/utils/text_search.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
@@ -15,11 +17,41 @@ import 'event_card.dart';
 import 'filter_sheet.dart';
 
 /// Keşfet sekmesi: gelecekteki aktif etkinlikler, filtreler, sayfalama.
-class DiscoverScreen extends ConsumerWidget {
+class DiscoverScreen extends ConsumerStatefulWidget {
   const DiscoverScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DiscoverScreen> createState() => _DiscoverScreenState();
+}
+
+class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  /// Başlık, açıklama, kategori (ve grubu), şehir, ilçe ve düzenleyen adında arar.
+  bool _matchesQuery(Event event) {
+    if (_query.trim().isEmpty) return true;
+    final category = EventCategory.byId(event.category);
+    return matchesSearch(_query, [
+      event.title,
+      event.description,
+      category.label,
+      category.group.label,
+      event.city,
+      event.district,
+      event.ownerName,
+    ]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ref = this.ref;
     final filter = ref.watch(discoverFilterProvider);
     final limit = ref.watch(discoverLimitProvider);
     final eventsAsync = ref.watch(discoverEventsProvider);
@@ -45,7 +77,34 @@ class DiscoverScreen extends ConsumerWidget {
         icon: const Icon(Icons.add),
         label: const Text('Etkinlik oluştur'),
       ),
-      body: _buildBody(context, ref, filter, limit, eventsAsync, blocked),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: SearchBar(
+              controller: _searchController,
+              hintText: 'Etkinlik, kategori veya şehir ara',
+              leading: const Icon(Icons.search),
+              elevation: const WidgetStatePropertyAll<double>(0),
+              onChanged: (value) => setState(() => _query = value),
+              trailing: [
+                if (_query.isNotEmpty)
+                  IconButton(
+                    tooltip: 'Aramayı temizle',
+                    icon: const Icon(Icons.close),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _query = '');
+                    },
+                  ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _buildBody(context, ref, filter, limit, eventsAsync, blocked),
+          ),
+        ],
+      ),
     );
   }
 
@@ -68,7 +127,25 @@ class DiscoverScreen extends ConsumerWidget {
       return const LoadingView();
     }
 
-    final visible = events.where((event) => !blocked.contains(event.ownerId)).toList();
+    final visible = events
+        .where((event) => !blocked.contains(event.ownerId))
+        .where(_matchesQuery)
+        .toList();
+
+    if (visible.isEmpty && _query.trim().isNotEmpty) {
+      return EmptyView(
+        icon: Icons.search_off,
+        title: 'Sonuç bulunamadı',
+        message:
+            '"${_query.trim()}" için yüklenen etkinliklerde eşleşme yok. Farklı bir sözcük dene'
+            '${events.length >= limit ? ' veya daha fazla etkinlik yükle' : ''}.',
+        actionLabel: events.length >= limit ? 'Daha fazla yükle' : null,
+        onAction: events.length >= limit
+            ? () => ref.read(discoverLimitProvider.notifier).state =
+                limit + discoverPageSize
+            : null,
+      );
+    }
 
     if (visible.isEmpty) {
       return filter.isActive

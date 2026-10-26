@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/constants/event_categories.dart';
+import '../../event_discovery/presentation/category_picker.dart';
 import '../../../core/constants/turkey_cities.dart';
 import '../../../core/errors/error_mapper.dart';
 import '../../../core/theme/app_theme.dart';
@@ -78,6 +79,20 @@ class _ProfileFormState extends State<ProfileForm> {
     }
   }
 
+  Future<void> _pickInterests() async {
+    final result = await showCategoryMultiPicker(
+      context,
+      selected: _interests,
+      max: AppConfig.maxInterests,
+    );
+    if (result == null) return;
+    setState(() {
+      _interests
+        ..clear()
+        ..addAll(result);
+    });
+  }
+
   void _toggleInterest(String id, bool selected) {
     setState(() {
       if (selected) {
@@ -145,14 +160,19 @@ class _ProfileFormState extends State<ProfileForm> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              for (final category in EventCategory.all)
-                FilterChip(
-                  avatar: Icon(category.icon, size: 18),
-                  label: Text(category.label),
-                  selected: _interests.contains(category.id),
-                  onSelected: (selected) =>
-                      _toggleInterest(category.id, selected),
+              for (final id in _interests)
+                InputChip(
+                  avatar: Icon(EventCategory.byId(id).icon, size: 18),
+                  label: Text(EventCategory.byId(id).label),
+                  onDeleted: () => _toggleInterest(id, false),
                 ),
+              ActionChip(
+                avatar: const Icon(Icons.add, size: 18),
+                label: Text(
+                  _interests.isEmpty ? 'İlgi alanı ekle' : 'Düzenle',
+                ),
+                onPressed: _pickInterests,
+              ),
             ],
           ),
           const SizedBox(height: 24),
