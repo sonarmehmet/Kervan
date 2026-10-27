@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/errors/error_mapper.dart';
 import '../../../core/router/route_names.dart';
+import '../../../core/theme/theme_mode_controller.dart';
 import '../../authentication/data/auth_repository.dart';
 import '../../authentication/data/session_service.dart';
 import '../data/account_repository.dart';
@@ -97,6 +98,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 title: const Text('E-posta'),
                 subtitle: Text(email),
               ),
+            const _ThemeTile(),
             ListTile(
               leading: const Icon(Icons.block),
               title: const Text('Engellenen kullanıcılar'),
@@ -141,6 +143,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: Center(child: CircularProgressIndicator()),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Görünüm: sistem varsayılanı, açık veya koyu tema.
+class _ThemeTile extends ConsumerWidget {
+  const _ThemeTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(themeModeProvider);
+    return ListTile(
+      leading: const Icon(Icons.brightness_6_outlined),
+      title: const Text('Görünüm'),
+      subtitle: Text(ThemeModeController.label(mode)),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => showDialog<void>(
+        context: context,
+        builder: (dialogContext) => Consumer(
+          builder: (context, ref, _) {
+            final current = ref.watch(themeModeProvider);
+            return SimpleDialog(
+              title: const Text('Görünüm'),
+              children: [
+                for (final m in ThemeMode.values)
+                  RadioListTile<ThemeMode>(
+                    value: m,
+                    groupValue: current,
+                    title: Text(ThemeModeController.label(m)),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      ref.read(themeModeProvider.notifier).setMode(value);
+                      Navigator.of(dialogContext).pop();
+                    },
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
