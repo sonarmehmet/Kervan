@@ -31,6 +31,13 @@ abstract final class RoutePaths {
 
   static String eventChat(String eventId) => '/events/$eventId/chat';
 
+  // Gruplar ve takip. 'create' sabit yolu ':groupId' değişkeninden ÖNCE tanımlanmalı.
+  static const String groups = '/groups';
+  static const String createGroup = '/groups/create';
+  static String groupDetails(String groupId) => '/groups/$groupId';
+  static String editGroup(String groupId) => '/groups/$groupId/edit';
+  static const String following = '/settings/following';
+
   /// Giriş yapmadan erişilebilen yollar.
   static const Set<String> publicPaths = <String>{
     login,

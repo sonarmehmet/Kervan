@@ -33,6 +33,9 @@ class Event {
     required this.capacity,
     required this.acceptedCount,
     required this.status,
+    this.seriesId,
+    this.groupId,
+    this.groupName,
   });
 
   final String id;
@@ -50,6 +53,13 @@ class Event {
   final int acceptedCount;
   final EventStatus status;
 
+  /// Tekrarlayan etkinlik serisinin kimliği (yoksa `null`).
+  final String? seriesId;
+
+  /// Etkinliğin ait olduğu grup (yoksa `null`).
+  final String? groupId;
+  final String? groupName;
+
   factory Event.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? const <String, dynamic>{};
     return Event(
@@ -66,6 +76,9 @@ class Event {
       capacity: (data['capacity'] as num?)?.toInt() ?? 0,
       acceptedCount: (data['acceptedCount'] as num?)?.toInt() ?? 0,
       status: EventStatus.fromId(data['status'] as String?),
+      seriesId: data['seriesId'] as String?,
+      groupId: data['groupId'] as String?,
+      groupName: data['groupName'] as String?,
     );
   }
 

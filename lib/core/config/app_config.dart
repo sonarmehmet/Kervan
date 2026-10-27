@@ -12,6 +12,11 @@ abstract final class AppConfig {
   static const int maxInterests = 10;
 
   static const int passwordMin = 8;
+
+  /// Paylaşım bağlantılarının tabanı (ör. https://rota-app.web.app). Derlemede verilir:
+  ///   flutter run --dart-define=SHARE_BASE_URL=https://PROJE.web.app
+  /// Boşsa paylaşım metni bağlantısız gider.
+  static const String shareBaseUrl = String.fromEnvironment('SHARE_BASE_URL');
 }
 
 /// Çağrılabilir (callable) Cloud Function adları.
@@ -22,4 +27,10 @@ abstract final class FunctionNames {
   static const String leaveEvent = 'leaveEvent';
   static const String cancelEvent = 'cancelEvent';
   static const String deleteAccount = 'deleteAccount';
+  static const String joinWaitlist = 'joinWaitlist';
+  static const String leaveWaitlist = 'leaveWaitlist';
+  static const String submitRating = 'submitRating';
+  static const String createGroup = 'createGroup';
+  static const String joinGroup = 'joinGroup';
+  static const String leaveGroup = 'leaveGroup';
 }

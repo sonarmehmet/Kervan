@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/event_categories.dart';
 import '../../../core/errors/error_mapper.dart';
@@ -17,7 +19,11 @@ import '../../moderation/presentation/block_user_dialog.dart';
 import '../../moderation/presentation/report_sheet.dart';
 import '../../participation/data/participation_repository.dart';
 import '../../participation/presentation/participation_section.dart';
+import '../../following/presentation/follow_button.dart';
+import '../../ratings/presentation/event_rating_section.dart';
+import '../../ratings/presentation/rating_widgets.dart';
 import '../data/event.dart';
+import '../data/event_share.dart';
 
 class EventDetailsScreen extends ConsumerWidget {
   const EventDetailsScreen({super.key, required this.eventId});
@@ -88,6 +94,17 @@ class _EventBody extends ConsumerWidget {
                 label: const Text('İptal edildi'),
                 backgroundColor: theme.colorScheme.errorContainer,
               ),
+            if (event.groupId != null)
+              ActionChip(
+                avatar: const Icon(Icons.groups, size: 18),
+                label: Text(event.groupName ?? 'Grup'),
+                onPressed: () => context.push(RoutePaths.groupDetails(event.groupId!)),
+              ),
+            if (event.seriesId != null)
+              const Chip(
+                avatar: Icon(Icons.repeat, size: 18),
+                label: Text('Tekrarlayan seri'),
+              ),
           ],
         ),
         const SizedBox(height: 8),
@@ -100,6 +117,16 @@ class _EventBody extends ConsumerWidget {
         _DetailRow(
           icon: Icons.person_outline,
           text: 'Düzenleyen: ${event.ownerName}',
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 32, bottom: 8),
+          child: Row(
+            children: [
+              RatingBadge(userId: event.ownerId, asOrganizer: true),
+              const Spacer(),
+              FollowButton(organizerId: event.ownerId, organizerName: event.ownerName),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
         Row(
@@ -130,6 +157,15 @@ class _EventBody extends ConsumerWidget {
         ),
         const SizedBox(height: 24),
         ParticipationSection(event: event),
+        if (uid != null) ...[
+          const SizedBox(height: 16),
+          EventRatingSection(
+            event: event,
+            uid: uid,
+            isOwner: isOwner,
+            isParticipant: isParticipant,
+          ),
+        ],
         const SizedBox(height: 24),
       ],
     );
@@ -157,7 +193,7 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-enum _MenuAction { edit, cancel, report, block }
+enum _MenuAction { share, calendar, edit, cancel, report, block }
 
 class _EventMenu extends ConsumerWidget {
   const _EventMenu({required this.event});
@@ -206,6 +242,20 @@ class _EventMenu extends ConsumerWidget {
     _MenuAction action,
   ) async {
     switch (action) {
+      case _MenuAction.share:
+        await Share.share(buildShareText(event), subject: event.title);
+      case _MenuAction.calendar:
+        var opened = false;
+        try {
+          opened = await launchUrl(calendarUri(event), mode: LaunchMode.externalApplication);
+        } catch (_) {
+          opened = false;
+        }
+        if (!opened && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Takvim açılamadı.')),
+          );
+        }
       case _MenuAction.edit:
         await context.push(RoutePaths.editEvent(event.id));
       case _MenuAction.cancel:
@@ -235,6 +285,8 @@ class _EventMenu extends ConsumerWidget {
     return PopupMenuButton<_MenuAction>(
       onSelected: (action) => _onSelected(context, ref, action),
       itemBuilder: (context) => [
+        const PopupMenuItem(value: _MenuAction.share, child: Text('Paylaş')),
+        const PopupMenuItem(value: _MenuAction.calendar, child: Text('Takvime ekle')),
         if (isOwner && !event.isCancelled) ...const [
           PopupMenuItem(value: _MenuAction.edit, child: Text('Düzenle')),
           PopupMenuItem(value: _MenuAction.cancel, child: Text('Etkinliği iptal et')),

@@ -26,6 +26,7 @@ dependencies:
 
   # Adresi harita uygulamasında açmak için
   url_launcher: ^6.3.1
+  share_plus: ^10.1.4
 
   # Tarih/saat biçimlendirme (Türkçe)
   intl: any

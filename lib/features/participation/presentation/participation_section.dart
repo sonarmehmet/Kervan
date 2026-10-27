@@ -179,7 +179,44 @@ class _ParticipationSectionState extends ConsumerState<ParticipationSection> {
       );
     }
     if (event.isFull) {
-      return const _InfoCard(icon: Icons.group_off, text: 'Etkinliğin kapasitesi dolu.');
+      final onWaitlist = ref.watch(onWaitlistProvider(event.id)).valueOrNull ?? false;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _InfoCard(
+            icon: Icons.group_off,
+            text: onWaitlist
+                ? 'Bekleme listesindesin. Yer açılırsa bildirim alacaksın.'
+                : 'Etkinliğin kapasitesi dolu.',
+          ),
+          const SizedBox(height: 12),
+          if (onWaitlist)
+            OutlinedButton(
+              onPressed: _busy
+                  ? null
+                  : () => _run(
+                        () => ref
+                            .read(participationRepositoryProvider)
+                            .leaveWaitlist(event.id),
+                        success: 'Bekleme listesinden çıktın.',
+                      ),
+              child: const Text('Bekleme listesinden çık'),
+            )
+          else
+            FilledButton.tonalIcon(
+              onPressed: _busy
+                  ? null
+                  : () => _run(
+                        () => ref
+                            .read(participationRepositoryProvider)
+                            .joinWaitlist(event.id),
+                        success: 'Bekleme listesine eklendin.',
+                      ),
+              icon: const Icon(Icons.hourglass_empty),
+              label: const Text('Bekleme listesine katıl'),
+            ),
+        ],
+      );
     }
     return FilledButton.icon(
       onPressed: _busy
@@ -212,9 +249,18 @@ class _OwnerActions extends ConsumerWidget {
         .where((request) => request.status == RequestStatus.pending)
         .length;
 
+    final waiting = ref.watch(waitlistCountProvider(event.id)).valueOrNull ?? 0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (waiting > 0 && event.isFull) ...[
+          _InfoCard(
+            icon: Icons.hourglass_empty,
+            text: 'Bekleme listesinde $waiting kişi var. Yer açılırsa onlara bildirim gider.',
+          ),
+          const SizedBox(height: 12),
+        ],
         FilledButton.icon(
           onPressed: () => context.push(RoutePaths.eventRequests(event.id)),
           icon: Badge(

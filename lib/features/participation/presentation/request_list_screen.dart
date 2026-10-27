@@ -8,6 +8,7 @@ import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../authentication/data/auth_repository.dart';
 import '../../event_creation/data/event_repository.dart';
+import '../../ratings/presentation/rating_widgets.dart';
 import '../data/join_request.dart';
 import '../data/participation_repository.dart';
 
@@ -106,9 +107,14 @@ class _RequestListScreenState extends ConsumerState<RequestListScreen> {
               child: ListTile(
                 leading: const CircleAvatar(child: Icon(Icons.person)),
                 title: Text(request.userName),
-                subtitle: request.createdAt == null
-                    ? null
-                    : Text(DateFormatters.eventDateTime(request.createdAt!)),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    RatingBadge(userId: request.userId, asOrganizer: false),
+                    if (request.createdAt != null)
+                      Text(DateFormatters.eventDateTime(request.createdAt!)),
+                  ],
+                ),
                 trailing: _busyUserIds.contains(request.userId)
                     ? const SizedBox(
                         width: 24,

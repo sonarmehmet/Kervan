@@ -104,6 +104,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onTap: () => context.push(RoutePaths.blockedUsers),
             ),
             ListTile(
+              leading: const Icon(Icons.notifications_active_outlined),
+              title: const Text('Takip ettiklerim'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push(RoutePaths.following),
+            ),
+            ListTile(
               leading: const Icon(Icons.gavel_outlined),
               title: const Text('Kullanım koşulları'),
               trailing: const Icon(Icons.chevron_right),

@@ -60,6 +60,28 @@ class ParticipationRepository {
         );
   }
 
+  /// Kullanıcı bu etkinliğin bekleme listesinde mi?
+  Stream<bool> watchOnWaitlist(String eventId, String uid) {
+    return _firestore
+        .doc(FirestorePaths.eventWaitlistEntry(eventId, uid))
+        .snapshots()
+        .map((snapshot) => snapshot.exists);
+  }
+
+  /// Bekleme listesindeki kişi sayısı (yalnızca etkinlik sahibi okuyabilir).
+  Stream<int> watchWaitlistCount(String eventId) {
+    return _firestore
+        .collection(FirestorePaths.eventWaitlist(eventId))
+        .snapshots()
+        .map((snapshot) => snapshot.size);
+  }
+
+  Future<void> joinWaitlist(String eventId) =>
+      _call(FunctionNames.joinWaitlist, <String, dynamic>{'eventId': eventId});
+
+  Future<void> leaveWaitlist(String eventId) =>
+      _call(FunctionNames.leaveWaitlist, <String, dynamic>{'eventId': eventId});
+
   /// Yeni talep gönderir. Daha önce geri çekilmiş (`cancelled`) talep yeniden açılır.
   /// Reddedilmiş talep tekrar gönderilemez (kurallar da engeller).
   Future<void> sendRequest({
@@ -151,4 +173,19 @@ final eventRequestsProvider = StreamProvider.family<List<JoinRequest>, String>(
 final eventParticipantsProvider = StreamProvider.family<List<Participant>, String>(
   (ref, eventId) =>
       ref.watch(participationRepositoryProvider).watchParticipants(eventId),
+);
+
+/// Giriş yapmış kullanıcı bu etkinliğin bekleme listesinde mi?
+final onWaitlistProvider = StreamProvider.family<bool, String>((ref, eventId) {
+  final user = ref.watch(authStateProvider).valueOrNull;
+  if (user == null) return Stream<bool>.value(false);
+  return ref
+      .watch(participationRepositoryProvider)
+      .watchOnWaitlist(eventId, user.uid);
+});
+
+/// Bekleme listesi büyüklüğü (etkinlik sahibi için).
+final waitlistCountProvider = StreamProvider.family<int, String>(
+  (ref, eventId) =>
+      ref.watch(participationRepositoryProvider).watchWaitlistCount(eventId),
 );

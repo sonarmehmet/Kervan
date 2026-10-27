@@ -16,6 +16,10 @@ import '../../features/event_discovery/presentation/discover_screen.dart';
 import '../../features/moderation/presentation/blocked_users_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/chat/presentation/chat_screen.dart';
+import '../../features/following/presentation/following_screen.dart';
+import '../../features/groups/presentation/group_details_screen.dart';
+import '../../features/groups/presentation/group_form_screen.dart';
+import '../../features/groups/presentation/groups_screen.dart';
 import '../../features/participation/presentation/participants_screen.dart';
 import '../../features/participation/presentation/request_list_screen.dart';
 import '../../features/profile/data/profile_repository.dart';
@@ -140,7 +144,37 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // --- Etkinlikler --- sabit yollar ':eventId' değişkeninden önce gelir.
       GoRoute(
         path: RoutePaths.createEvent,
-        builder: (context, state) => const CreateEventScreen(),
+        builder: (context, state) => CreateEventScreen(
+          initialGroupId: state.uri.queryParameters['groupId'],
+        ),
+      ),
+
+      // --- Gruplar ve takip --- 'create' ':groupId'den önce.
+      GoRoute(
+        path: RoutePaths.groups,
+        builder: (context, state) => const GroupsScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.createGroup,
+        builder: (context, state) => const GroupFormScreen(),
+      ),
+      GoRoute(
+        path: '/groups/:groupId',
+        builder: (context, state) => GroupDetailsScreen(
+          groupId: state.pathParameters['groupId']!,
+        ),
+        routes: <RouteBase>[
+          GoRoute(
+            path: 'edit',
+            builder: (context, state) => EditGroupScreen(
+              groupId: state.pathParameters['groupId']!,
+            ),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: RoutePaths.following,
+        builder: (context, state) => const FollowingScreen(),
       ),
       GoRoute(
         path: '/events/:eventId',

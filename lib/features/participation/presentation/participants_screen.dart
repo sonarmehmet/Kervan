@@ -6,6 +6,7 @@ import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../event_creation/data/event_repository.dart';
+import '../../ratings/presentation/rating_widgets.dart';
 import '../data/participation_repository.dart';
 
 /// Onaylı katılımcı listesi (etkinlik sahibi ve katılımcılar görür).
@@ -69,6 +70,7 @@ class ParticipantsScreen extends ConsumerWidget {
               child: ListTile(
                 leading: const CircleAvatar(child: Icon(Icons.person)),
                 title: Text(participant.userName),
+                subtitle: RatingBadge(userId: participant.userId, asOrganizer: false),
               ),
             ),
         ],

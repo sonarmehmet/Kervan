@@ -7,7 +7,9 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_formatters.dart';
 import '../../event_details/data/event.dart';
 import '../../event_discovery/presentation/category_picker.dart';
+import '../../groups/data/group.dart';
 import '../data/event_input.dart';
+import '../data/recurrence.dart';
 import '../data/event_validators.dart';
 
 /// Etkinlik oluşturma ve düzenleme için ortak form.
@@ -17,6 +19,8 @@ class EventForm extends StatefulWidget {
     this.initial,
     this.initialAddress,
     this.minCapacity = 1,
+    this.ownedGroups = const <Group>[],
+    this.initialGroupId,
     required this.submitLabel,
     required this.onSubmit,
   });
@@ -27,6 +31,10 @@ class EventForm extends StatefulWidget {
 
   /// Düzenlemede onaylı katılımcı sayısı: kapasite bunun altına inemez.
   final int minCapacity;
+
+  /// Yalnızca oluşturmada: sahibi olduğum gruplar (etkinlik bir gruba bağlanabilir).
+  final List<Group> ownedGroups;
+  final String? initialGroupId;
   final String submitLabel;
 
   /// Hata fırlatırsa form mesajı gösterir ve düzenlemeye devam ettirir.
@@ -46,6 +54,9 @@ class _EventFormState extends State<EventForm> {
 
   String? _category;
   String? _city;
+  String? _groupId;
+  Recurrence _recurrence = Recurrence.none;
+  int _occurrences = 4;
   DateTime? _startsAt;
   String? _categoryError;
   String? _dateError;
@@ -70,6 +81,7 @@ class _EventFormState extends State<EventForm> {
         ? initial.city
         : null;
     _startsAt = initial?.startsAt;
+    _groupId = widget.initialGroupId;
   }
 
   @override
@@ -80,6 +92,14 @@ class _EventFormState extends State<EventForm> {
     _capacityController.dispose();
     _addressController.dispose();
     super.dispose();
+  }
+
+  Group? get _selectedGroup {
+    if (widget.initial != null || _groupId == null) return null;
+    for (final group in widget.ownedGroups) {
+      if (group.id == _groupId) return group;
+    }
+    return null;
   }
 
   Future<void> _pickDateTime() async {
@@ -128,6 +148,10 @@ class _EventFormState extends State<EventForm> {
           startsAt: _startsAt!,
           capacity: int.parse(_capacityController.text.trim()),
           address: _addressController.text.trim(),
+          recurrence: widget.initial == null ? _recurrence : Recurrence.none,
+          occurrences: _recurrence == Recurrence.none ? 1 : _occurrences,
+          groupId: _selectedGroup?.id,
+          groupName: _selectedGroup?.name,
         ),
       );
     } catch (error) {
@@ -289,6 +313,68 @@ class _EventFormState extends State<EventForm> {
             ),
             validator: EventValidators.description,
           ),
+          if (widget.initial == null) ...[
+            if (widget.ownedGroups.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String?>(
+                initialValue: _selectedGroup?.id,
+                isExpanded: true,
+                decoration: AppTheme.inputDecoration(label: 'Grup (isteğe bağlı)'),
+                items: [
+                  const DropdownMenuItem<String?>(value: null, child: Text('Grup yok')),
+                  for (final group in widget.ownedGroups)
+                    DropdownMenuItem<String?>(value: group.id, child: Text(group.name)),
+                ],
+                onChanged: (value) => setState(() => _groupId = value),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 12, top: 4),
+                child: Text(
+                  'Gruba bağlı etkinlikte grup üyelerine bildirim gider.',
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            DropdownButtonFormField<Recurrence>(
+              initialValue: _recurrence,
+              isExpanded: true,
+              decoration: AppTheme.inputDecoration(label: 'Tekrar'),
+              items: [
+                for (final rule in Recurrence.values)
+                  DropdownMenuItem<Recurrence>(value: rule, child: Text(rule.label)),
+              ],
+              onChanged: (value) => setState(() => _recurrence = value ?? Recurrence.none),
+            ),
+            if (_recurrence != Recurrence.none) ...[
+              const SizedBox(height: 16),
+              DropdownButtonFormField<int>(
+                initialValue: _occurrences,
+                decoration: AppTheme.inputDecoration(label: 'Toplam etkinlik sayısı'),
+                items: [
+                  for (var n = RecurrenceLimits.minOccurrences; n <= RecurrenceLimits.maxOccurrences; n++)
+                    DropdownMenuItem<int>(value: n, child: Text('$n etkinlik')),
+                ],
+                onChanged: (value) => setState(() => _occurrences = value ?? 4),
+              ),
+              if (_startsAt != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 12, top: 6),
+                  child: Text(
+                    'Tarihler: ${occurrenceDates(_startsAt!, _recurrence, _occurrences).take(3).map(DateFormatters.shortDate).join(', ')}'
+                    '${_occurrences > 3 ? ' ...' : ''}',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.only(left: 12, top: 4),
+                child: Text(
+                  'Her tarih ayrı bir etkinlik olur; istediğini ayrı ayrı iptal edebilirsin.',
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ),
+            ],
+          ],
           const SizedBox(height: 16),
           FilledButton(
             onPressed: _saving ? null : _submit,

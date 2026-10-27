@@ -62,6 +62,11 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
         title: const Text('Keşfet'),
         actions: [
           IconButton(
+            tooltip: 'Gruplar',
+            onPressed: () => context.push(RoutePaths.groups),
+            icon: const Icon(Icons.groups_outlined),
+          ),
+          IconButton(
             tooltip: 'Filtrele',
             onPressed: () => showFilterSheet(context),
             icon: Badge(

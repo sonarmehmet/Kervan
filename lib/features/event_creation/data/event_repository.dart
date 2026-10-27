@@ -7,6 +7,7 @@ import '../../../core/constants/firestore_paths.dart';
 import '../../../core/services/firebase_providers.dart';
 import '../../event_details/data/event.dart';
 import 'event_input.dart';
+import 'recurrence.dart';
 
 /// `events/{eventId}` ve `events/{eventId}/private/location` işlemleri.
 class EventRepository {
@@ -25,35 +26,50 @@ class EventRepository {
         );
   }
 
-  /// Etkinlik ve tam adres TEK batch ile yazılır (kurallar buna göre yazıldı).
-  /// Yeni etkinliğin kimliğini döner.
+  /// Etkinlik(ler) ve tam adres(ler) TEK batch ile yazılır (kurallar buna göre yazıldı).
+  /// Tekrar kuralı varsa seri oluşur (ortak `seriesId`, sıra `seriesIndex`); ilk etkinliğin
+  /// kimliğini döner.
   Future<String> createEvent({
     required String ownerId,
     required String ownerName,
     required EventInput input,
   }) async {
-    final ref = _events.doc();
+    final dates = occurrenceDates(input.startsAt, input.recurrence, input.occurrences);
+    final isSeries = dates.length > 1;
     final batch = _firestore.batch();
-    batch.set(ref, <String, dynamic>{
-      'ownerId': ownerId,
-      'ownerName': ownerName,
-      'title': input.title.trim(),
-      'description': input.description.trim(),
-      'category': input.category,
-      'city': input.city,
-      'district': input.district.trim(),
-      'startsAt': Timestamp.fromDate(input.startsAt),
-      'capacity': input.capacity,
-      'acceptedCount': 0,
-      'status': 'active',
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-    batch.set(
-      _firestore.doc(FirestorePaths.eventLocation(ref.id)),
-      <String, dynamic>{'address': input.address.trim()},
-    );
+    String? firstId;
+    String? seriesId;
+    for (var i = 0; i < dates.length; i++) {
+      final ref = _events.doc();
+      firstId ??= ref.id;
+      seriesId ??= ref.id;
+      batch.set(ref, <String, dynamic>{
+        'ownerId': ownerId,
+        'ownerName': ownerName,
+        'title': input.title.trim(),
+        'description': input.description.trim(),
+        'category': input.category,
+        'city': input.city,
+        'district': input.district.trim(),
+        'startsAt': Timestamp.fromDate(dates[i]),
+        'capacity': input.capacity,
+        'acceptedCount': 0,
+        'status': 'active',
+        'createdAt': FieldValue.serverTimestamp(),
+        if (isSeries) 'seriesId': seriesId,
+        if (isSeries) 'seriesIndex': i,
+        if (input.groupId != null && input.groupName != null) ...<String, dynamic>{
+          'groupId': input.groupId,
+          'groupName': input.groupName,
+        },
+      });
+      batch.set(
+        _firestore.doc(FirestorePaths.eventLocation(ref.id)),
+        <String, dynamic>{'address': input.address.trim()},
+      );
+    }
     await batch.commit();
-    return ref.id;
+    return firstId!;
   }
 
   /// `acceptedCount`, `ownerId`, `status` ve `createdAt` gönderilmez:
