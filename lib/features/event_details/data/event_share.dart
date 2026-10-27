@@ -6,7 +6,7 @@ import 'event.dart';
 /// [baseUrl] doluysa (`--dart-define=SHARE_BASE_URL=...`) etkinlik bağlantısı eklenir.
 String buildShareText(Event event, {String baseUrl = AppConfig.shareBaseUrl}) {
   final lines = <String>[
-    '${event.title}',
+    event.title,
     '${DateFormatters.eventDateTime(event.startsAt)} · ${event.locationLabel}',
     'Rota\'da birlikte katılalım!',
   ];

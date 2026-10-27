@@ -9,6 +9,6 @@ void main() {
 
   test('şikâyet hedef türleri firestore.rules ile aynı', () {
     final ids = ReportTargetType.values.map((t) => t.id).toSet();
-    expect(ids, <String>{'event', 'user'});
+    expect(ids, <String>{'event', 'user', 'group'});
   });
 }
