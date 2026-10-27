@@ -17,6 +17,16 @@ abstract final class AppConfig {
   ///   flutter run --dart-define=SHARE_BASE_URL=https://PROJE.web.app
   /// Boşsa paylaşım metni bağlantısız gider.
   static const String shareBaseUrl = String.fromEnvironment('SHARE_BASE_URL');
+
+  /// Web için Firebase ayarları (Firebase konsolu > Proje ayarları > Web uygulaması).
+  /// Kodda saklanmaz; `scripts/run_web.sh` --dart-define ile verir. Android/iOS'ta kullanılmaz.
+  static const String webApiKey = String.fromEnvironment('FIREBASE_API_KEY');
+  static const String webAppId = String.fromEnvironment('FIREBASE_APP_ID');
+  static const String webMessagingSenderId =
+      String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID');
+  static const String webProjectId = String.fromEnvironment('FIREBASE_PROJECT_ID');
+  static const String webAuthDomain = String.fromEnvironment('FIREBASE_AUTH_DOMAIN');
+  static const String webStorageBucket = String.fromEnvironment('FIREBASE_STORAGE_BUCKET');
 }
 
 /// Çağrılabilir (callable) Cloud Function adları.

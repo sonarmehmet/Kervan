@@ -36,6 +36,7 @@ class PushService {
 
   /// İzin ister, jetonu kaydeder ve jeton yenilenince tekrar kaydeder. Hataları yutar (loglar).
   Future<void> registerForUser(String uid) async {
+    if (kIsWeb) return; // Web'de push yok; uygulama içi bildirim listesi çalışır.
     if (_registeredUid == uid) return;
     try {
       final settings = await _messaging.requestPermission();
