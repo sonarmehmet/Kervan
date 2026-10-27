@@ -30,7 +30,12 @@ export type NotificationType =
   | "request_received"
   | "request_approved"
   | "request_rejected"
-  | "event_cancelled";
+  | "event_cancelled"
+  | "waitlist_spot_open"
+  | "event_reminder_24h"
+  | "event_reminder_1h"
+  | "new_followed_event"
+  | "new_group_event";
 
 /** Çağıran oturum açmış olmalı; uid döner. */
 export function requireAuth(request: CallableRequest<unknown>): string {
@@ -75,13 +80,47 @@ export function notificationsCollection(uid: string) {
 export function buildNotification(
   type: NotificationType,
   eventId: string,
-  eventTitle: string
+  eventTitle: string,
+  extra: {actorName?: string; groupName?: string} = {}
 ) {
   return {
     type,
     eventId,
     eventTitle,
+    ...(extra.actorName ? {actorName: extra.actorName} : {}),
+    ...(extra.groupName ? {groupName: extra.groupName} : {}),
     read: false,
     createdAt: FieldValue.serverTimestamp(),
   };
+}
+
+/** Kullanıcının görünen adı (profil yoksa yedek ad). */
+export async function displayNameOf(uid: string): Promise<string> {
+  const snap = await db.doc(`users/${uid}`).get();
+  const name = snap.get("displayName");
+  return typeof name === "string" && name.length > 0 ? name : "Katılımcı";
+}
+
+/** Çağrı verisinden sınırlı uzunlukta metin okur. */
+export function readText(
+  data: unknown,
+  key: string,
+  min: number,
+  max: number
+): string {
+  const value =
+    typeof data === "object" && data !== null ?
+      (data as Record<string, unknown>)[key] :
+      undefined;
+  if (typeof value !== "string") {
+    throw new HttpsError("invalid-argument", `Geçersiz alan: ${key}`);
+  }
+  const text = value.trim();
+  if (text.length < min || text.length > max) {
+    throw new HttpsError(
+      "invalid-argument",
+      `${key} ${min}-${max} karakter olmalı.`
+    );
+  }
+  return text;
 }

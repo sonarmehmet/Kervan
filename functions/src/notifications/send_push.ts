@@ -6,7 +6,8 @@ import {NotificationType, db} from "../common";
 /** Bildirim türüne göre push başlığı ve metni (Türkçe). */
 export function pushText(
   type: NotificationType | string,
-  eventTitle: string
+  eventTitle: string,
+  extra: {actorName?: string; groupName?: string} = {}
 ): {title: string; body: string} {
   switch (type) {
   case "request_received":
@@ -28,6 +29,31 @@ export function pushText(
     return {
       title: "Etkinlik iptal edildi",
       body: `"${eventTitle}" etkinliği iptal edildi.`,
+    };
+  case "waitlist_spot_open":
+    return {
+      title: "Yer açıldı!",
+      body: `"${eventTitle}" etkinliğinde yer açıldı. Hemen katılma isteği gönder.`,
+    };
+  case "event_reminder_24h":
+    return {
+      title: "Etkinlik yarın",
+      body: `"${eventTitle}" etkinliği 24 saat içinde başlıyor.`,
+    };
+  case "event_reminder_1h":
+    return {
+      title: "Etkinlik yaklaşıyor",
+      body: `"${eventTitle}" etkinliği 1 saat içinde başlıyor.`,
+    };
+  case "new_followed_event":
+    return {
+      title: "Takip ettiğin kişi etkinlik oluşturdu",
+      body: `${extra.actorName ?? "Bir düzenleyici"}: "${eventTitle}"`,
+    };
+  case "new_group_event":
+    return {
+      title: `${extra.groupName ?? "Grubun"} için yeni etkinlik`,
+      body: `"${eventTitle}" etkinliği oluşturuldu.`,
     };
   default:
     return {
@@ -63,7 +89,11 @@ export const onNotificationCreated = onDocumentCreated(
 
     const {title, body} = pushText(
       String(notification.type ?? ""),
-      String(notification.eventTitle ?? "")
+      String(notification.eventTitle ?? ""),
+      {
+        actorName: String(notification.actorName ?? ""),
+        groupName: String(notification.groupName ?? ""),
+      }
     );
 
     const response = await getMessaging().sendEachForMulticast({

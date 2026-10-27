@@ -66,6 +66,19 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
+      // Takip ettiğim düzenleyenler (yalnızca kendim okur/yazarım).
+      match /following/{organizerId} {
+        allow read: if isSelf(uid);
+        allow create: if isSelf(uid)
+          && organizerId != uid
+          && request.resource.data.keys().hasOnly(['organizerId', 'organizerName', 'createdAt'])
+          && request.resource.data.organizerId == organizerId
+          && validString(request.resource.data.organizerName, 1, 40)
+          && request.resource.data.createdAt == request.time;
+        allow update: if false;
+        allow delete: if isSelf(uid);
+      }
+
       // E-posta gibi özel veriler bu belgede tutulmaz; profil alanları herkese açıktır.
       allow read: if isSignedIn();
       allow create: if isSelf(uid) && validProfile(request.resource.data);
@@ -95,7 +108,8 @@ service cloud.firestore {
     function validNewEvent(data) {
       return data.keys().hasOnly([
           'ownerId', 'ownerName', 'title', 'description', 'category', 'city', 'district',
-          'startsAt', 'capacity', 'acceptedCount', 'status', 'createdAt', 'updatedAt'
+          'startsAt', 'capacity', 'acceptedCount', 'status', 'createdAt', 'updatedAt',
+          'seriesId', 'seriesIndex', 'groupId', 'groupName'
         ])
         && data.keys().hasAll([
           'ownerId', 'ownerName', 'title', 'description', 'category', 'city', 'district',
@@ -115,7 +129,16 @@ service cloud.firestore {
         && data.capacity <= 100
         && data.acceptedCount == 0
         && data.status == 'active'
-        && data.createdAt == request.time;
+        && data.createdAt == request.time
+        && (!('seriesId' in data) || validString(data.seriesId, 1, 40))
+        && (!('seriesIndex' in data) || (data.seriesIndex is int && data.seriesIndex >= 0 && data.seriesIndex < 12))
+        && (!('groupId' in data) || (
+          'groupName' in data
+          && validString(data.groupId, 1, 128)
+          && validString(data.groupName, 1, 50)
+          && get(/databases/$(database)/documents/groups/$(data.groupId)).data.ownerId == request.auth.uid
+          && get(/databases/$(database)/documents/groups/$(data.groupId)).data.status == 'active'
+        ));
     }
 
     function validEventUpdate(old, data) {
@@ -199,6 +222,13 @@ service cloud.firestore {
         allow delete: if isSelf(resource.data.senderId) || isEventOwner(eventId);
       }
 
+      // Bekleme listesi: yalnızca Cloud Functions yazar; kişi kendi kaydını, sahip tüm listeyi okur.
+      match /waitlist/{userId} {
+        allow get: if isSelf(userId) || isEventOwner(eventId);
+        allow list: if isEventOwner(eventId);
+        allow write: if false;
+      }
+
       match /participants/{userId} {
         allow get: if isSelf(userId) || isEventOwner(eventId) || isParticipant(eventId);
         allow list: if isEventOwner(eventId) || isParticipant(eventId);
@@ -209,6 +239,53 @@ service cloud.firestore {
     // "Katıldığım etkinlikler" sorgusu (collectionGroup) için: yalnızca kendi kayıtları.
     match /{path=**}/participants/{userId} {
       allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // ---------- Gruplar ----------
+    // Oluşturma, katılma ve ayrılma Cloud Functions ile yapılır (üye sayısı tutarlılığı için).
+
+    function validGroupUpdate(old, data) {
+      return data.diff(old).affectedKeys().hasOnly(['name', 'description', 'category', 'city', 'status', 'updatedAt'])
+        && validString(data.name, 3, 50)
+        && validString(data.description, 0, 500)
+        && validString(data.category, 1, 30)
+        && validString(data.city, 2, 30)
+        && (data.status == old.status || (old.status == 'active' && data.status == 'closed'));
+    }
+
+    match /groups/{groupId} {
+      allow read: if isSignedIn();
+      allow create, delete: if false;
+      allow update: if isSignedIn()
+        && resource.data.ownerId == request.auth.uid
+        && validGroupUpdate(resource.data, request.resource.data);
+
+      match /members/{userId} {
+        allow get: if isSelf(userId)
+          || (isSignedIn() && get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid);
+        allow list: if isSignedIn()
+          && get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid;
+        allow write: if false;
+      }
+    }
+
+    // "Üye olduğum gruplar" sorgusu (collectionGroup): yalnızca kendi kayıtları.
+    match /{path=**}/members/{userId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // ---------- Değerlendirmeler (anonim) ----------
+    // Ham kayıtlar yalnızca puanı veren tarafından okunabilir (hangi kişileri puanladığını görmek için).
+    // Hedef kişi ham kayıtları ASLA okuyamaz; yalnızca toplamları (userStats) görür.
+
+    match /ratings/{ratingId} {
+      allow read: if isSignedIn() && resource.data.raterId == request.auth.uid;
+      allow write: if false;
+    }
+
+    match /userStats/{uid} {
+      allow read: if isSignedIn();
+      allow write: if false;
     }
 
     // ---------- Bildirimler ----------
@@ -227,7 +304,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(
           ['reporterId', 'targetType', 'targetId', 'reason', 'details', 'status', 'createdAt'])
         && request.resource.data.reporterId == request.auth.uid
-        && request.resource.data.targetType in ['event', 'user']
+        && request.resource.data.targetType in ['event', 'user', 'group']
         && validString(request.resource.data.targetId, 1, 128)
         && request.resource.data.reason in ['spam', 'harassment', 'unsafe', 'fake', 'other']
         && validString(request.resource.data.details, 0, 500)
