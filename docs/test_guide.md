@@ -26,6 +26,11 @@
    cd functions && npm ci && npm run build && cd ..
    firebase deploy --only functions
    ```
+5b. **Paylaşım bağlantıları (isteğe bağlı):** `firebase deploy --only hosting` ile `hosting/` klasörü yayınlanır
+   (`https://PROJE_ID.web.app`). `hosting/*.html` içindeki `PLAY_STORE_URL`'yi Play bağlantınla değiştir.
+   Uygulama bağlantısı için `SHARE_HOST=PROJE_ID.web.app bash scripts/setup_android.sh com.SENIN.rota`
+   çalıştır ve uygulamayı `flutter run --dart-define=SHARE_BASE_URL=https://PROJE_ID.web.app` ile başlat.
+   Yayın anahtarının SHA256 parmak izini `hosting/.well-known/assetlinks.json` içine yaz (Play App Signing parmak izi).
 6. **Çalıştır:** `flutter pub get && flutter run` (telefon USB hata ayıklama açık ya da emulator).
    Telefonda "Firebase başlatılamadı" ekranı çıkarsa 4. adım eksik demektir.
 
@@ -51,10 +56,20 @@
 | 14 | Doğrulama bağlantısını açmadan giriş yap | Doğrulama ekranından öteye geçemez |
 | 15 | Push: uygulama kapalıyken bildirime dokun | Etkinlik detayı açılır |
 
+| 16 | Etkinlik dolunca üçüncü kullanıcı "Bekleme listesine katıl"a basar; biri ayrılır | Bekleyene "yer açıldı" bildirimi gelir |
+| 17 | Başlamasına ~1 gün kala etkinlik | Sahip ve katılımcılara "24 saat içinde başlıyor" bildirimi (en geç 15 dk içinde) |
+| 18 | Etkinlik oluştururken Tekrar: "Her hafta", 4 etkinlik | 4 ayrı etkinlik, "Tekrarlayan seri" etiketi |
+| 19 | Düzenleyeni takip et; düzenleyen yeni etkinlik oluşturur | Takipçiye bildirim gelir |
+| 20 | Grup kur, ikinci hesap katılır, grup için etkinlik oluştur | Üyeye "grup için yeni etkinlik" bildirimi |
+| 21 | Etkinlik başladıktan sonra karşılıklı puan ver (en az 3 kişiyle) | Puan anonim; ortalama 3 puandan sonra görünür |
+| 22 | Menüden Paylaş / Takvime ekle | Paylaşım metni (adres yok) / Google Takvim açılır |
+
 Bir şey çalışmazsa: ekran görüntüsü + `flutter run` konsol çıktısı gönder.
 
 ## C. Bilinen sınırlar (bu sürüm)
 
+- Para kazanma (öne çıkan etkinlik, işletme hesabı, reklam) henüz yok; ödeme altyapısı gerektirir.
+- Zamanlanmış hatırlatma için Cloud Scheduler gerekir (Blaze plan; Functions deploy ile otomatik açılır).
 - Haritadan konum seçme yok; adres yazılır, "Haritada aç" harici harita uygulamasını açar.
 - Profil fotoğrafı yok. Google ile giriş yok (yalnızca e-posta/şifre). Sohbet mesajları için push yok.
 - iOS yapılandırılmadı.

@@ -22,6 +22,10 @@ Adres: [Adres]
 | Etkinlik buluşma adresi (tam adres) | Etkinlik oluştururken sen yazarsın | Yalnızca etkinlik sahibi ve katılımı onaylanan kişiler |
 | Katılım talepleri ve katılımcı listesi | Talep gönderdiğinde | Talep sahibi ve etkinlik sahibi; katılımcı listesini sahip ve onaylı katılımcılar |
 | Etkinlik sohbeti mesajları | Sohbette yazdığında | Yalnızca etkinlik sahibi ve onaylı katılımcılar |
+| Takip ettiğin düzenleyenler | Takip et'e dokunduğunda | Yalnızca sen |
+| Grup üyelikleri ve oluşturduğun gruplar | Gruba katıldığında / grup kurduğunda | Grup bilgisi ve üye sayısı herkese açık; üye listesini yalnızca grup sahibi görür |
+| Bekleme listesi kaydı | Dolu etkinlikte listeye yazıldığında | Yalnızca sen ve etkinlik sahibi |
+| Değerlendirme puanları (1-5, anonim) | Etkinlik sonrası puan verdiğinde | Karşı taraf kimin puan verdiğini göremez, yalnızca ortalamayı (en az 3 puan olunca) görür. Tekrar puanı önlemek için sistemde puanı verenin kaydı tutulur; yalnızca sen kendi verdiğin puanları görürsün |
 | Bildirimler | Uygulama olaylarından üretilir | Yalnızca ilgili kullanıcı |
 | Engellenen kullanıcılar | Sen engellediğinde | Yalnızca sen |
 | Şikâyetler | Sen şikâyet ettiğinde | Yalnızca uygulama yöneticileri |
@@ -46,8 +50,8 @@ paylaşılmaz.
 
 ## 5. Saklama süresi
 
-Hesabınız açık olduğu sürece saklanır. Hesabınızı sildiğinizde profil, engel listesi, bildirimler, sohbet mesajları ve
-gönderdiğiniz katılım talepleri silinir; oluşturduğunuz etkinlikler iptal edilir, sahip adı "Silinmiş kullanıcı"
+Hesabınız açık olduğu sürece saklanır. Hesabınızı sildiğinizde profil, engel listesi, bildirimler, sohbet mesajları, bekleme listesi ve takip kayıtları, grup üyelikleri, verdiğiniz/aldığınız puan kayıtları ve
+gönderdiğiniz katılım talepleri silinir; sahibi olduğunuz gruplar kapatılır; oluşturduğunuz etkinlikler iptal edilir, sahip adı "Silinmiş kullanıcı"
 olarak anonimleştirilir ve tam adres silinir. Şikâyet kayıtları, güvenlik amacıyla [süre] boyunca saklanabilir.
 
 ## 6. Haklarınız (KVKK madde 11)

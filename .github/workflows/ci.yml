@@ -119,16 +119,16 @@ jobs:
           cache: true
       - name: Android klasörünü hazırla (betik + sahte google-services.json)
         run: |
-          bash scripts/setup_android.sh com.rota
+          SHARE_HOST=rota-test.web.app bash scripts/setup_android.sh com.rota
           cat > android/app/google-services.json <<'JSON'
           {"project_info":{"project_number":"1","project_id":"demo-rota","storage_bucket":"demo-rota.appspot.com"},
            "client":[{"client_info":{"mobilesdk_app_id":"1:1:android:1","android_client_info":{"package_name":"com.rota.rota"}},
            "api_key":[{"current_key":"fake"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],
            "configuration_version":"1"}
           JSON
-          bash scripts/setup_android.sh com.rota
+          SHARE_HOST=rota-test.web.app bash scripts/setup_android.sh com.rota
           { echo "--- gradle ---"; grep -n "minSdk\|google-services" android/app/build.gradle* android/settings.gradle*
-            grep -n "POST_NOTIFICATIONS\|android:label" android/app/src/main/AndroidManifest.xml; } > setup.txt
+            grep -n "POST_NOTIFICATIONS\|android:label\|android:host\|deeplinking" android/app/src/main/AndroidManifest.xml; } > setup.txt
       - run: flutter pub get
       - name: flutter build apk
         run: |

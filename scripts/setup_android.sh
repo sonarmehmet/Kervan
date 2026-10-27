@@ -7,6 +7,8 @@
 #   2. minSdk'yı 23 yapar (Firebase şartı)
 #   3. AndroidManifest'e bildirim izni (POST_NOTIFICATIONS) ekler
 #   4. Uygulama adını "Rota" yapar
+#   4b. SHARE_HOST ortam değişkeni verilirse (örn. SHARE_HOST=rota-app.web.app) paylaşım bağlantıları
+#       (https://HOST/events/ID) için Android uygulama bağlantısı (intent-filter) ekler
 #   5. android/app/google-services.json VARSA Google Services eklentisini bağlar
 #      (dosya yoksa bu adımı atlar; dosyayı koyduktan sonra betiği tekrar çalıştır)
 set -euo pipefail
@@ -37,6 +39,15 @@ fi
 
 # 4. Uygulama adı
 sed -i -E 's/android:label="[^"]*"/android:label="Rota"/' "$MANIFEST"
+
+# 4b. Paylaşım bağlantısı (App Links)
+if [ -n "${SHARE_HOST:-}" ] && ! grep -q "android:host=\"$SHARE_HOST\"" "$MANIFEST"; then
+  FILTER="            <intent-filter android:autoVerify=\"true\">\n                <action android:name=\"android.intent.action.VIEW\"/>\n                <category android:name=\"android.intent.category.DEFAULT\"/>\n                <category android:name=\"android.intent.category.BROWSABLE\"/>\n                <data android:scheme=\"https\" android:host=\"$SHARE_HOST\" android:pathPrefix=\"/events\"/>\n            </intent-filter>"
+  sed -i "0,/<\/activity>/s##$FILTER\n        </activity>#" "$MANIFEST"
+  grep -q 'flutter_deeplinking_enabled' "$MANIFEST" || \
+    sed -i '0,/<\/activity>/s##    <meta-data android:name="flutter_deeplinking_enabled" android:value="true"/>\n        </activity>#' "$MANIFEST"
+  echo "Paylaşım bağlantısı eklendi: https://$SHARE_HOST/events/..."
+fi
 
 # 5. Google Services eklentisi
 if [ -f android/app/google-services.json ]; then

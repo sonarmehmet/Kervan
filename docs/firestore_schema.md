@@ -83,6 +83,38 @@ Gönderen adı SAKLANMAZ; istemci adı sahip adı + katılımcı listesinden ç�
 Okuma/yazma: yalnızca sahip ve onaylı katılımcılar; yazma yalnızca etkinlik `active` iken.
 Güncelleme yok; silme: gönderen veya etkinlik sahibi. Hesap silinince mesajlar silinir.
 
+### 2.5 `events/{eventId}/waitlist/{userId}`
+
+Dolu etkinlikte bekleme listesi. Alanlar: `userId`, `userName`, `createdAt`. Yalnızca Cloud Functions yazar
+(`joinWaitlist`, `leaveWaitlist`). Yer açılınca (katılımcı sayısı azalır veya kapasite artar) en eski bekleyenlere
+`waitlist_spot_open` bildirimi gider ve kayıtları silinir; kişi normal katılma isteği gönderir.
+
+### 2.6 Etkinlikteki isteğe bağlı alanlar
+
+`seriesId`, `seriesIndex` (0-11): tekrarlayan seri (her tarih ayrı etkinlik). `groupId`, `groupName`: grup etkinliği
+(yalnızca grup sahibi bağlayabilir). `reminder24hSent`, `reminder1hSent`: yalnızca sunucu yazar (hatırlatma bayrakları).
+Bunlar oluşturulduktan sonra istemciden değiştirilemez.
+
+## 2b. `groups/{groupId}` ve `groups/{groupId}/members/{userId}`
+
+Grup: `name` (3-50), `description` (0-500), `category`, `city`, `ownerId`, `ownerName`, `memberCount`, `status`
+(`active|closed`), `createdAt`, `updatedAt`. Oluşturma/katılma/ayrılma Cloud Functions ile (`createGroup`, `joinGroup`,
+`leaveGroup`); sahip yalnızca ad/açıklama/kategori/şehir günceller ve grubu `closed` yapar. Üyelik: `userId`, `userName`,
+`role` (`owner|member`), `joinedAt`; kişi kendi kaydını, sahip tüm üyeleri okur.
+
+## 2c. `users/{uid}/following/{organizerId}`
+
+Takip ettiğim düzenleyenler (`organizerId`, `organizerName`, `createdAt`). Yalnızca kendim okur/yazarım. Takip edilen kişi
+etkinlik oluşturunca `new_followed_event` bildirimi gider (grup üyesiyse `new_group_event`; seride yalnızca ilk etkinlik).
+
+## 2d. Anonim değerlendirme: `ratings/{id}` ve `userStats/{uid}`
+
+`submitRating` (callable): etkinlik başladıktan sonra, 30 gün içinde; katılımcı yalnızca düzenleyeni, düzenleyen yalnızca
+onaylı katılımcıları puanlar; 1-5 yıldız, yorum yok; (etkinlik, puanlayan, hedef) başına bir kez.
+`ratings/{eventId}_{raterId}_{targetId}`: ham kayıt, yalnızca puanlayan okuyabilir (hedef ASLA okuyamaz).
+`userStats/{uid}`: `organizerSum/Count`, `participantSum/Count`; giriş yapan herkes okur. İstemci ortalamayı en az 3 puan
+olunca gösterir (anonimlik). Hesap silinince ilgili ham kayıtlar ve istatistik silinir.
+
 ## 3. `notifications/{uid}/items/{itemId}`
 
 Yalnızca Cloud Functions oluşturur. Kullanıcı yalnızca `read` alanını günceller.
@@ -111,7 +143,18 @@ Yalnızca Cloud Functions oluşturur. Kullanıcı yalnızca `read` alanını gü
 
 ---
 
+## Zamanlanmış ve tetikleyici fonksiyonlar
+
+- `sendEventReminders` (her 15 dk): başlamasına 24 saat / 1 saat kalan aktif etkinliklerin sahibine ve onaylı
+  katılımcılarına `event_reminder_24h` / `event_reminder_1h` bildirimi (her biri en fazla bir kez).
+- `onEventCreated`: takipçilere ve grup üyelerine bildirim (düzenleyeni engelleyenler hariç, en fazla 500 kişi).
+- `onEventUpdated`: yer açılınca bekleme listesini bilgilendirir.
+
 ## Cloud Functions sözleşmesi (callable, bölge: `europe-west1`)
+
+Yeni callable'lar: `joinWaitlist`, `leaveWaitlist` ({eventId}); `submitRating` ({eventId, targetUserId, stars});
+`createGroup` ({name, description, category, city} → {groupId}), `joinGroup`, `leaveGroup` ({groupId}).
+Tüm callable'lar e-postası doğrulanmış oturum ister.
 
 | Fonksiyon | Giriş | Çıkış | İş |
 |---|---|---|---|
