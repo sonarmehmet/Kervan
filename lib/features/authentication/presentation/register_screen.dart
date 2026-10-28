@@ -153,7 +153,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               child: GestureDetector(
                                 onTap: () => context.push(RoutePaths.privacyPolicy),
                                 child: Text(
-                                  'Gizlilik Politikası',
+                                  'Gizlilik Politikası / KVKK Aydınlatma Metni',
                                   style: TextStyle(
                                     color: theme.colorScheme.primary,
                                     decoration: TextDecoration.underline,
@@ -161,7 +161,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 ),
                               ),
                             ),
-                            const TextSpan(text: "'nı okudum, kabul ediyorum."),
+                            const TextSpan(text: "'ni okudum, kabul ediyorum."),
                           ],
                         ),
                       ),

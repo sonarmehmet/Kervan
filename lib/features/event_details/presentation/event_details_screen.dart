@@ -13,6 +13,7 @@ import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../authentication/data/auth_repository.dart';
 import '../../event_creation/data/event_repository.dart';
+import '../../event_discovery/presentation/event_card.dart';
 import '../../event_creation/data/event_validators.dart';
 import '../../location/presentation/event_location_card.dart';
 import '../../moderation/data/report_repository.dart';
@@ -55,15 +56,46 @@ class EventDetailsScreen extends ConsumerWidget {
       body = _EventBody(event: event);
     }
 
+    final uid = ref.watch(authStateProvider).valueOrNull?.uid;
+    final isParticipant = event != null &&
+        (ref.watch(isParticipantProvider(event.id)).valueOrNull ?? false);
+    final stickyJoin =
+        event != null && uid != null && uid != event.ownerId && !isParticipant;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Etkinlik'),
         actions: [
+          if (event != null)
+            IconButton(
+              tooltip: 'Paylaş',
+              icon: const Icon(Icons.ios_share),
+              onPressed: () =>
+                  Share.share(buildShareText(event), subject: event.title),
+            ),
           if (event != null) SaveButton(eventId: event.id),
           if (event != null) _EventMenu(event: event),
         ],
       ),
       body: body,
+      bottomNavigationBar: stickyJoin
+          ? Material(
+              elevation: 8,
+              color: Theme.of(context).colorScheme.surface,
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 190),
+                    child: SingleChildScrollView(
+                      child: ParticipationSection(event: event),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : null,
     );
   }
 }
@@ -81,26 +113,21 @@ class _EventBody extends ConsumerWidget {
     final isParticipant =
         ref.watch(isParticipantProvider(event.id)).valueOrNull ?? false;
     final category = EventCategory.byId(event.category);
+    final stickyJoin = uid != null && !isOwner && !isParticipant;
     final progress =
         event.capacity == 0 ? 0.0 : event.acceptedCount / event.capacity;
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        if (event.hasImage) ...[
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(22),
-              child: Image.network(
-                event.imageUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-              ),
-            ),
+        SizedBox(
+          height: 200,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: EventCover(event: event),
           ),
-          const SizedBox(height: 16),
-        ],
+        ),
+        const SizedBox(height: 16),
         Wrap(
           spacing: 8,
           children: [
@@ -198,8 +225,10 @@ class _EventBody extends ConsumerWidget {
           event: event,
           canViewAddress: isOwner || isParticipant,
         ),
-        const SizedBox(height: 24),
-        ParticipationSection(event: event),
+        if (!stickyJoin) ...[
+          const SizedBox(height: 24),
+          ParticipationSection(event: event),
+        ],
         if (uid != null) ...[
           const SizedBox(height: 16),
           EventRatingSection(

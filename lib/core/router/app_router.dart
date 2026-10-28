@@ -29,6 +29,8 @@ import '../../features/profile/presentation/profile_setup_screen.dart';
 import '../../features/settings/presentation/privacy_policy_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/settings/presentation/terms_screen.dart';
+import '../../features/onboarding/onboarding_controller.dart';
+import '../../features/onboarding/onboarding_screen.dart';
 import '../widgets/app_shell.dart';
 import 'route_names.dart';
 
@@ -44,6 +46,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
   ref.listen(authStateProvider, (_, __) => refresh.value++);
   ref.listen(currentProfileProvider, (_, __) => refresh.value++);
+  ref.listen(onboardingSeenProvider, (_, __) => refresh.value++);
   ref.onDispose(refresh.dispose);
 
   String? redirect(String location) {
@@ -54,6 +57,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
     final user = auth.valueOrNull;
     if (user == null) {
+      // İlk açılışta karşılama ekranları (okunuyorsa engelleme).
+      if (ref.read(onboardingSeenProvider) == false &&
+          (location == RoutePaths.login || location == RoutePaths.splash)) {
+        return RoutePaths.onboarding;
+      }
       return RoutePaths.publicPaths.contains(location) ? null : RoutePaths.login;
     }
 
@@ -78,6 +86,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
     const entryPaths = <String>{
       RoutePaths.splash,
+      RoutePaths.onboarding,
       RoutePaths.login,
       RoutePaths.register,
       RoutePaths.forgotPassword,
@@ -97,6 +106,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.splash,
         builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.onboarding,
+        builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
         path: RoutePaths.login,

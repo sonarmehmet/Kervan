@@ -114,11 +114,6 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
     final resultsMode = _query.trim().isNotEmpty || filter.hasNarrowing || _showAll;
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push(RoutePaths.createEvent),
-        icon: const Icon(Icons.add),
-        label: const Text('Etkinlik oluştur'),
-      ),
       body: SafeArea(
         bottom: false,
         child: resultsMode ? _buildResults(context, filter) : _buildBrowse(context, filter),
