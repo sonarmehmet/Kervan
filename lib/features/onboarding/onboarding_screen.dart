@@ -82,21 +82,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 itemBuilder: (context, i) {
                   final page = onboardingPages[i];
                   final bg = RotaColors.accentAt(i);
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                  return Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: 160,
-                          height: 160,
+                          width: 128,
+                          height: 128,
                           decoration: BoxDecoration(
                             color: bg,
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             page.icon,
-                            size: 80,
+                            size: 64,
                             color: RotaColors.onAccent(bg),
                           ),
                         ),
@@ -113,6 +114,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           style: theme.textTheme.bodyLarge,
                         ),
                       ],
+                    ),
                     ),
                   );
                 },
