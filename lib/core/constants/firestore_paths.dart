@@ -8,6 +8,14 @@ abstract final class FirestorePaths {
   static const String locationDocId = 'location';
   static const String requests = 'requests';
   static const String participants = 'participants';
+  static const String messages = 'messages';
+  static const String waitlist = 'waitlist';
+  static const String following = 'following';
+  static const String saved = 'saved';
+  static const String groups = 'groups';
+  static const String members = 'members';
+  static const String ratings = 'ratings';
+  static const String userStats = 'userStats';
   static const String notifications = 'notifications';
   static const String notificationItems = 'items';
   static const String reports = 'reports';
@@ -16,6 +24,10 @@ abstract final class FirestorePaths {
   static String userBlocks(String uid) => '$users/$uid/$blocks';
   static String userBlock(String uid, String blockedUid) =>
       '$users/$uid/$blocks/$blockedUid';
+
+  static const String fcmTokens = 'fcmTokens';
+  static String userFcmToken(String uid, String token) =>
+      '$users/$uid/$fcmTokens/$token';
 
   static String event(String eventId) => '$events/$eventId';
   static String eventLocation(String eventId) =>
@@ -27,6 +39,23 @@ abstract final class FirestorePaths {
       '$events/$eventId/$participants';
   static String eventParticipant(String eventId, String userId) =>
       '$events/$eventId/$participants/$userId';
+
+  static String eventMessages(String eventId) => '$events/$eventId/$messages';
+
+  static String eventWaitlist(String eventId) => '$events/$eventId/$waitlist';
+  static String eventWaitlistEntry(String eventId, String userId) =>
+      '$events/$eventId/$waitlist/$userId';
+  static String userFollowing(String uid) => '$users/$uid/$following';
+  static String userFollow(String uid, String organizerId) =>
+      '$users/$uid/$following/$organizerId';
+  static String userSaved(String uid) => '$users/$uid/$saved';
+  static String userSavedItem(String uid, String eventId) =>
+      '$users/$uid/$saved/$eventId';
+  static String group(String groupId) => '$groups/$groupId';
+  static String groupMembers(String groupId) => '$groups/$groupId/$members';
+  static String groupMember(String groupId, String uid) =>
+      '$groups/$groupId/$members/$uid';
+  static String userStat(String uid) => '$userStats/$uid';
 
   static String userNotifications(String uid) =>
       '$notifications/$uid/$notificationItems';

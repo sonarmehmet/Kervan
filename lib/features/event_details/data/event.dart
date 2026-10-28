@@ -33,6 +33,15 @@ class Event {
     required this.capacity,
     required this.acceptedCount,
     required this.status,
+    this.seriesId,
+    this.groupId,
+    this.groupName,
+    this.imageUrl,
+    this.durationMinutes,
+    this.costNote = '',
+    this.terms = '',
+    this.saveCount = 0,
+    this.createdAt,
   });
 
   final String id;
@@ -50,6 +59,31 @@ class Event {
   final int acceptedCount;
   final EventStatus status;
 
+  /// Tekrarlayan etkinlik serisinin kimliği (yoksa `null`).
+  final String? seriesId;
+
+  /// Etkinliğin ait olduğu grup (yoksa `null`).
+  final String? groupId;
+  final String? groupName;
+
+  /// Etkinlik fotoğrafı (Firebase Storage indirme bağlantısı); yoksa `null`.
+  final String? imageUrl;
+
+  /// Tahmini süre (dakika); belirtilmediyse `null`.
+  final int? durationMinutes;
+
+  /// "Hesap katılımcılara aittir", "Ücretsiz" gibi kısa not.
+  final String costNote;
+
+  /// Düzenleyenin katılım ve iptal koşulları.
+  final String terms;
+
+  /// Kaç kişi kaydetti (sunucu hesaplar).
+  final int saveCount;
+
+  /// Oluşturulma zamanı (sunucu zamanı; yazma anında henüz çözülmemiş olabilir).
+  final DateTime? createdAt;
+
   factory Event.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? const <String, dynamic>{};
     return Event(
@@ -66,8 +100,23 @@ class Event {
       capacity: (data['capacity'] as num?)?.toInt() ?? 0,
       acceptedCount: (data['acceptedCount'] as num?)?.toInt() ?? 0,
       status: EventStatus.fromId(data['status'] as String?),
+      seriesId: data['seriesId'] as String?,
+      groupId: data['groupId'] as String?,
+      groupName: data['groupName'] as String?,
+      imageUrl: data['imageUrl'] as String?,
+      durationMinutes: (data['durationMinutes'] as num?)?.toInt(),
+      costNote: (data['costNote'] as String?) ?? '',
+      terms: (data['terms'] as String?) ?? '',
+      saveCount: (data['saveCount'] as num?)?.toInt() ?? 0,
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
     );
   }
+
+  DateTime? get endsAt => durationMinutes == null
+      ? null
+      : startsAt.add(Duration(minutes: durationMinutes!));
+
+  bool get hasImage => imageUrl != null && imageUrl!.isNotEmpty;
 
   bool get isCancelled => status == EventStatus.cancelled;
   bool get isFull => acceptedCount >= capacity;

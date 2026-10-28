@@ -1,5 +1,5 @@
-name: kervan
-description: Kervan - birlikte aktivite yapacak insanları buluşturan sosyal etkinlik uygulaması.
+name: rota
+description: Rota - birlikte aktivite yapacak insanları buluşturan sosyal etkinlik uygulaması.
 publish_to: "none"
 version: 0.1.0+1
 
@@ -22,6 +22,19 @@ dependencies:
   firebase_auth: ^5.3.4
   cloud_firestore: ^5.6.0
   cloud_functions: ^5.2.0
+  firebase_messaging: ^15.1.0
+
+  # Adresi harita uygulamasında açmak için
+  url_launcher: ^6.3.1
+  share_plus: ^10.1.4
+
+  # Etkinlik fotoğrafı
+  firebase_storage: ^12.4.0
+  image_picker: ^1.1.2
+
+  # Yazı tipi (Nunito) ve cihazda tema tercihi
+  google_fonts: ^6.2.1
+  shared_preferences: ^2.3.3
 
   # Tarih/saat biçimlendirme (Türkçe)
   intl: any

@@ -2,6 +2,7 @@
 abstract final class RoutePaths {
   // Oturum ve kurulum
   static const String splash = '/splash';
+  static const String onboarding = '/onboarding';
   static const String login = '/login';
   static const String register = '/register';
   static const String forgotPassword = '/forgot-password';
@@ -18,6 +19,8 @@ abstract final class RoutePaths {
   static const String settings = '/settings';
   static const String blockedUsers = '/settings/blocked';
   static const String privacyPolicy = '/settings/privacy';
+  static const String terms = '/settings/terms';
+  static const String verifyEmail = '/verify-email';
 
   // Etkinlikler. DİKKAT: 'create' sabit yolu ':eventId' değişkeninden ÖNCE tanımlanmalı.
   static const String createEvent = '/events/create';
@@ -27,11 +30,22 @@ abstract final class RoutePaths {
   static String eventParticipants(String eventId) =>
       '/events/$eventId/participants';
 
+  static String eventChat(String eventId) => '/events/$eventId/chat';
+
+  // Gruplar ve takip. 'create' sabit yolu ':groupId' değişkeninden ÖNCE tanımlanmalı.
+  static const String groups = '/groups';
+  static const String createGroup = '/groups/create';
+  static String groupDetails(String groupId) => '/groups/$groupId';
+  static String editGroup(String groupId) => '/groups/$groupId/edit';
+  static const String following = '/settings/following';
+
   /// Giriş yapmadan erişilebilen yollar.
   static const Set<String> publicPaths = <String>{
+    onboarding,
     login,
     register,
     forgotPassword,
     privacyPolicy,
+    terms,
   };
 }

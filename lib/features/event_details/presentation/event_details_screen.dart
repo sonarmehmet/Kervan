@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/event_categories.dart';
 import '../../../core/errors/error_mapper.dart';
@@ -11,13 +13,20 @@ import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../authentication/data/auth_repository.dart';
 import '../../event_creation/data/event_repository.dart';
+import '../../event_discovery/presentation/event_card.dart';
+import '../../event_creation/data/event_validators.dart';
 import '../../location/presentation/event_location_card.dart';
 import '../../moderation/data/report_repository.dart';
 import '../../moderation/presentation/block_user_dialog.dart';
 import '../../moderation/presentation/report_sheet.dart';
 import '../../participation/data/participation_repository.dart';
 import '../../participation/presentation/participation_section.dart';
+import '../../following/presentation/follow_button.dart';
+import '../../saved/presentation/save_button.dart';
+import '../../ratings/presentation/event_rating_section.dart';
+import '../../ratings/presentation/rating_widgets.dart';
 import '../data/event.dart';
+import '../data/event_share.dart';
 
 class EventDetailsScreen extends ConsumerWidget {
   const EventDetailsScreen({super.key, required this.eventId});
@@ -47,12 +56,46 @@ class EventDetailsScreen extends ConsumerWidget {
       body = _EventBody(event: event);
     }
 
+    final uid = ref.watch(authStateProvider).valueOrNull?.uid;
+    final isParticipant = event != null &&
+        (ref.watch(isParticipantProvider(event.id)).valueOrNull ?? false);
+    final stickyJoin =
+        event != null && uid != null && uid != event.ownerId && !isParticipant;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Etkinlik'),
-        actions: [if (event != null) _EventMenu(event: event)],
+        actions: [
+          if (event != null)
+            IconButton(
+              tooltip: 'Paylaş',
+              icon: const Icon(Icons.ios_share),
+              onPressed: () =>
+                  Share.share(buildShareText(event), subject: event.title),
+            ),
+          if (event != null) SaveButton(eventId: event.id),
+          if (event != null) _EventMenu(event: event),
+        ],
       ),
       body: body,
+      bottomNavigationBar: stickyJoin
+          ? Material(
+              elevation: 8,
+              color: Theme.of(context).colorScheme.surface,
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 190),
+                    child: SingleChildScrollView(
+                      child: ParticipationSection(event: event),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : null,
     );
   }
 }
@@ -70,12 +113,21 @@ class _EventBody extends ConsumerWidget {
     final isParticipant =
         ref.watch(isParticipantProvider(event.id)).valueOrNull ?? false;
     final category = EventCategory.byId(event.category);
+    final stickyJoin = uid != null && !isOwner && !isParticipant;
     final progress =
         event.capacity == 0 ? 0.0 : event.acceptedCount / event.capacity;
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        SizedBox(
+          height: 200,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: EventCover(event: event),
+          ),
+        ),
+        const SizedBox(height: 16),
         Wrap(
           spacing: 8,
           children: [
@@ -88,6 +140,17 @@ class _EventBody extends ConsumerWidget {
                 label: const Text('İptal edildi'),
                 backgroundColor: theme.colorScheme.errorContainer,
               ),
+            if (event.groupId != null)
+              ActionChip(
+                avatar: const Icon(Icons.groups, size: 18),
+                label: Text(event.groupName ?? 'Grup'),
+                onPressed: () => context.push(RoutePaths.groupDetails(event.groupId!)),
+              ),
+            if (event.seriesId != null)
+              const Chip(
+                avatar: Icon(Icons.repeat, size: 18),
+                label: Text('Tekrarlayan seri'),
+              ),
           ],
         ),
         const SizedBox(height: 8),
@@ -95,11 +158,25 @@ class _EventBody extends ConsumerWidget {
         const SizedBox(height: 16),
         _DetailRow(
           icon: Icons.schedule,
-          text: DateFormatters.eventDateTime(event.startsAt),
+          text: event.durationMinutes == null
+              ? DateFormatters.eventDateTime(event.startsAt)
+              : '${DateFormatters.eventDateTime(event.startsAt)} · ${durationLabel(event.durationMinutes!)}',
         ),
+        if (event.costNote.isNotEmpty)
+          _DetailRow(icon: Icons.payments_outlined, text: event.costNote),
         _DetailRow(
           icon: Icons.person_outline,
           text: 'Düzenleyen: ${event.ownerName}',
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 32, bottom: 8),
+          child: Row(
+            children: [
+              RatingBadge(userId: event.ownerId, asOrganizer: true),
+              const Spacer(),
+              FollowButton(organizerId: event.ownerId, organizerName: event.ownerName),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
         Row(
@@ -123,13 +200,44 @@ class _EventBody extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(event.description),
         ],
+        if (event.terms.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          Text('Katılım koşulları', style: theme.textTheme.titleSmall),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline, size: 20),
+                const SizedBox(width: 12),
+                Expanded(child: Text(event.terms)),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 24),
         EventLocationCard(
           event: event,
           canViewAddress: isOwner || isParticipant,
         ),
-        const SizedBox(height: 24),
-        ParticipationSection(event: event),
+        if (!stickyJoin) ...[
+          const SizedBox(height: 24),
+          ParticipationSection(event: event),
+        ],
+        if (uid != null) ...[
+          const SizedBox(height: 16),
+          EventRatingSection(
+            event: event,
+            uid: uid,
+            isOwner: isOwner,
+            isParticipant: isParticipant,
+          ),
+        ],
         const SizedBox(height: 24),
       ],
     );
@@ -157,7 +265,7 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-enum _MenuAction { edit, cancel, report, block }
+enum _MenuAction { share, calendar, edit, cancel, report, block }
 
 class _EventMenu extends ConsumerWidget {
   const _EventMenu({required this.event});
@@ -206,6 +314,20 @@ class _EventMenu extends ConsumerWidget {
     _MenuAction action,
   ) async {
     switch (action) {
+      case _MenuAction.share:
+        await Share.share(buildShareText(event), subject: event.title);
+      case _MenuAction.calendar:
+        var opened = false;
+        try {
+          opened = await launchUrl(calendarUri(event), mode: LaunchMode.externalApplication);
+        } catch (_) {
+          opened = false;
+        }
+        if (!opened && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Takvim açılamadı.')),
+          );
+        }
       case _MenuAction.edit:
         await context.push(RoutePaths.editEvent(event.id));
       case _MenuAction.cancel:
@@ -235,6 +357,8 @@ class _EventMenu extends ConsumerWidget {
     return PopupMenuButton<_MenuAction>(
       onSelected: (action) => _onSelected(context, ref, action),
       itemBuilder: (context) => [
+        const PopupMenuItem(value: _MenuAction.share, child: Text('Paylaş')),
+        const PopupMenuItem(value: _MenuAction.calendar, child: Text('Takvime ekle')),
         if (isOwner && !event.isCancelled) ...const [
           PopupMenuItem(value: _MenuAction.edit, child: Text('Düzenle')),
           PopupMenuItem(value: _MenuAction.cancel, child: Text('Etkinliği iptal et')),

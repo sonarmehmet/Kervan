@@ -7,6 +7,7 @@ import '../../features/authentication/presentation/forgot_password_screen.dart';
 import '../../features/authentication/presentation/login_screen.dart';
 import '../../features/authentication/presentation/register_screen.dart';
 import '../../features/authentication/presentation/splash_screen.dart';
+import '../../features/authentication/presentation/verify_email_screen.dart';
 import '../../features/event_creation/presentation/create_event_screen.dart';
 import '../../features/event_creation/presentation/edit_event_screen.dart';
 import '../../features/event_details/presentation/event_details_screen.dart';
@@ -14,6 +15,11 @@ import '../../features/event_details/presentation/my_events_screen.dart';
 import '../../features/event_discovery/presentation/discover_screen.dart';
 import '../../features/moderation/presentation/blocked_users_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
+import '../../features/chat/presentation/chat_screen.dart';
+import '../../features/following/presentation/following_screen.dart';
+import '../../features/groups/presentation/group_details_screen.dart';
+import '../../features/groups/presentation/group_form_screen.dart';
+import '../../features/groups/presentation/groups_screen.dart';
 import '../../features/participation/presentation/participants_screen.dart';
 import '../../features/participation/presentation/request_list_screen.dart';
 import '../../features/profile/data/profile_repository.dart';
@@ -22,6 +28,9 @@ import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/profile/presentation/profile_setup_screen.dart';
 import '../../features/settings/presentation/privacy_policy_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
+import '../../features/settings/presentation/terms_screen.dart';
+import '../../features/onboarding/onboarding_controller.dart';
+import '../../features/onboarding/onboarding_screen.dart';
 import '../widgets/app_shell.dart';
 import 'route_names.dart';
 
@@ -30,12 +39,14 @@ import 'route_names.dart';
 /// Yönlendirme kuralları (redirect):
 ///  1. Oturum/profil yükleniyor veya hatalı  -> splash
 ///  2. Giriş yok                              -> login (herkese açık yollar hariç)
+///  2b. Giriş var, e-posta doğrulanmamış       -> verify-email
 ///  3. Giriş var, profil yok                  -> profile-setup
 ///  4. Giriş ve profil var, giriş/kurulum yolundaysa -> discover
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
   ref.listen(authStateProvider, (_, __) => refresh.value++);
   ref.listen(currentProfileProvider, (_, __) => refresh.value++);
+  ref.listen(onboardingSeenProvider, (_, __) => refresh.value++);
   ref.onDispose(refresh.dispose);
 
   String? redirect(String location) {
@@ -46,7 +57,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
     final user = auth.valueOrNull;
     if (user == null) {
+      // İlk açılışta karşılama ekranları (okunuyorsa engelleme).
+      if (ref.read(onboardingSeenProvider) == false &&
+          (location == RoutePaths.login || location == RoutePaths.splash)) {
+        return RoutePaths.onboarding;
+      }
       return RoutePaths.publicPaths.contains(location) ? null : RoutePaths.login;
+    }
+
+    // E-posta doğrulanmadan hiçbir yere girilemez (kurallar da sunucuda bunu zorlar).
+    if (!user.emailVerified) {
+      if (location == RoutePaths.verifyEmail ||
+          RoutePaths.publicPaths.contains(location)) {
+        return null;
+      }
+      return RoutePaths.verifyEmail;
     }
 
     final profile = ref.read(currentProfileProvider);
@@ -61,10 +86,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
     const entryPaths = <String>{
       RoutePaths.splash,
+      RoutePaths.onboarding,
       RoutePaths.login,
       RoutePaths.register,
       RoutePaths.forgotPassword,
       RoutePaths.profileSetup,
+      RoutePaths.verifyEmail,
     };
     if (entryPaths.contains(location)) return RoutePaths.discover;
     return null;
@@ -81,6 +108,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SplashScreen(),
       ),
       GoRoute(
+        path: RoutePaths.onboarding,
+        builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
         path: RoutePaths.login,
         builder: (context, state) => const LoginScreen(),
       ),
@@ -91,6 +122,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.forgotPassword,
         builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.verifyEmail,
+        builder: (context, state) => const VerifyEmailScreen(),
       ),
       GoRoute(
         path: RoutePaths.profileSetup,
@@ -114,11 +149,45 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.privacyPolicy,
         builder: (context, state) => const PrivacyPolicyScreen(),
       ),
+      GoRoute(
+        path: RoutePaths.terms,
+        builder: (context, state) => const TermsScreen(),
+      ),
 
       // --- Etkinlikler --- sabit yollar ':eventId' değişkeninden önce gelir.
       GoRoute(
         path: RoutePaths.createEvent,
-        builder: (context, state) => const CreateEventScreen(),
+        builder: (context, state) => CreateEventScreen(
+          initialGroupId: state.uri.queryParameters['groupId'],
+        ),
+      ),
+
+      // --- Gruplar ve takip --- 'create' ':groupId'den önce.
+      GoRoute(
+        path: RoutePaths.groups,
+        builder: (context, state) => const GroupsScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.createGroup,
+        builder: (context, state) => const GroupFormScreen(),
+      ),
+      GoRoute(
+        path: '/groups/:groupId',
+        builder: (context, state) => GroupDetailsScreen(
+          groupId: state.pathParameters['groupId']!,
+        ),
+        routes: <RouteBase>[
+          GoRoute(
+            path: 'edit',
+            builder: (context, state) => EditGroupScreen(
+              groupId: state.pathParameters['groupId']!,
+            ),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: RoutePaths.following,
+        builder: (context, state) => const FollowingScreen(),
       ),
       GoRoute(
         path: '/events/:eventId',
@@ -135,6 +204,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'requests',
             builder: (context, state) => RequestListScreen(
+              eventId: state.pathParameters['eventId']!,
+            ),
+          ),
+          GoRoute(
+            path: 'chat',
+            builder: (context, state) => ChatScreen(
               eventId: state.pathParameters['eventId']!,
             ),
           ),

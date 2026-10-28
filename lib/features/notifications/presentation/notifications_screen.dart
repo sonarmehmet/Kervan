@@ -59,6 +59,15 @@ class NotificationsScreen extends ConsumerWidget {
         return Icons.cancel;
       case NotificationType.eventCancelled:
         return Icons.event_busy;
+      case NotificationType.waitlistSpotOpen:
+        return Icons.event_available;
+      case NotificationType.eventReminder24h:
+      case NotificationType.eventReminder1h:
+        return Icons.alarm;
+      case NotificationType.newFollowedEvent:
+        return Icons.person_add_alt;
+      case NotificationType.newGroupEvent:
+        return Icons.groups;
       case NotificationType.unknown:
         return Icons.notifications;
     }
@@ -121,7 +130,7 @@ class NotificationsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Bildirimler'),
         actions: [
-          if (hasUnread && items != null)
+          if (hasUnread)
             TextButton(
               onPressed: () => _markAllRead(context, ref, items),
               child: const Text('Tümünü okundu yap'),

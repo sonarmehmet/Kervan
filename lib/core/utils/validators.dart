@@ -12,11 +12,19 @@ abstract final class Validators {
     return null;
   }
 
+  /// Kayıtta kullanılır: en az 8 karakter, en az bir harf ve bir rakam.
+  /// (Girişte güç kuralı uygulanmaz; eski şifreler engellenmesin.)
   static String? password(String? value) {
     final text = value ?? '';
     if (text.isEmpty) return 'Şifreni yaz.';
     if (text.length < AppConfig.passwordMin) {
       return 'Şifre en az ${AppConfig.passwordMin} karakter olmalı.';
+    }
+    if (text.length > 128) return 'Şifre en fazla 128 karakter olabilir.';
+    final hasLetter = RegExp(r'\p{L}', unicode: true).hasMatch(text);
+    final hasDigit = RegExp(r'\d').hasMatch(text);
+    if (!hasLetter || !hasDigit) {
+      return 'Şifre en az bir harf ve bir rakam içermeli.';
     }
     return null;
   }

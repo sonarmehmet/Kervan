@@ -6,12 +6,17 @@ import '../../../core/errors/app_exception.dart';
 import '../../../core/router/route_names.dart';
 import '../../authentication/data/auth_repository.dart';
 import '../../profile/data/profile_repository.dart';
+import '../../groups/data/group.dart';
+import '../../groups/data/group_repository.dart';
 import '../data/event_input.dart';
 import '../data/event_repository.dart';
 import 'event_form.dart';
 
 class CreateEventScreen extends ConsumerWidget {
-  const CreateEventScreen({super.key});
+  const CreateEventScreen({super.key, this.initialGroupId});
+
+  /// Grup sayfasından açıldıysa o grubun kimliği (formda önceden seçilir).
+  final String? initialGroupId;
 
   Future<void> _create(
     BuildContext context,
@@ -37,6 +42,7 @@ class CreateEventScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final ownedGroups = ref.watch(ownedGroupsProvider).valueOrNull ?? const <Group>[];
     return Scaffold(
       appBar: AppBar(title: const Text('Etkinlik oluştur')),
       body: SafeArea(
@@ -46,6 +52,8 @@ class CreateEventScreen extends ConsumerWidget {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 520),
               child: EventForm(
+                ownedGroups: ownedGroups,
+                initialGroupId: initialGroupId,
                 submitLabel: 'Etkinliği oluştur',
                 onSubmit: (input) => _create(context, ref, input),
               ),

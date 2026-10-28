@@ -6,6 +6,7 @@ import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../profile/data/profile_repository.dart';
 import '../data/auth_repository.dart';
+import '../data/session_service.dart';
 
 /// Oturum ve profil bilgisi yüklenirken gösterilir. Yükleme hatası olursa tekrar deneme sunar.
 class SplashScreen extends ConsumerWidget {
@@ -30,7 +31,7 @@ class SplashScreen extends ConsumerWidget {
               },
             ),
             TextButton(
-              onPressed: () => ref.read(authRepositoryProvider).signOut(),
+              onPressed: () => ref.read(sessionServiceProvider).signOut(),
               child: const Text('Çıkış yap'),
             ),
           ],

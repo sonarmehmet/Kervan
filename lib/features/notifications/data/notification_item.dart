@@ -5,6 +5,11 @@ enum NotificationType {
   requestApproved('request_approved'),
   requestRejected('request_rejected'),
   eventCancelled('event_cancelled'),
+  waitlistSpotOpen('waitlist_spot_open'),
+  eventReminder24h('event_reminder_24h'),
+  eventReminder1h('event_reminder_1h'),
+  newFollowedEvent('new_followed_event'),
+  newGroupEvent('new_group_event'),
   unknown('unknown');
 
   const NotificationType(this.id);
@@ -27,6 +32,8 @@ class NotificationItem {
     required this.eventTitle,
     required this.read,
     this.createdAt,
+    this.actorName = '',
+    this.groupName = '',
   });
 
   final String id;
@@ -35,6 +42,12 @@ class NotificationItem {
   final String eventTitle;
   final bool read;
   final DateTime? createdAt;
+
+  /// `new_followed_event`: düzenleyenin adı.
+  final String actorName;
+
+  /// `new_group_event`: grubun adı.
+  final String groupName;
 
   factory NotificationItem.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> doc,
@@ -47,6 +60,8 @@ class NotificationItem {
       eventTitle: (data['eventTitle'] as String?) ?? '',
       read: (data['read'] as bool?) ?? false,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+      actorName: (data['actorName'] as String?) ?? '',
+      groupName: (data['groupName'] as String?) ?? '',
     );
   }
 
@@ -61,6 +76,18 @@ class NotificationItem {
         return '"$eventTitle" etkinliğine katılım talebin reddedildi.';
       case NotificationType.eventCancelled:
         return '"$eventTitle" etkinliği iptal edildi.';
+      case NotificationType.waitlistSpotOpen:
+        return '"$eventTitle" etkinliğinde yer açıldı. Hemen katılma isteği gönder.';
+      case NotificationType.eventReminder24h:
+        return '"$eventTitle" etkinliği 24 saat içinde başlıyor.';
+      case NotificationType.eventReminder1h:
+        return '"$eventTitle" etkinliği 1 saat içinde başlıyor.';
+      case NotificationType.newFollowedEvent:
+        final who = actorName.isEmpty ? 'Takip ettiğin düzenleyen' : actorName;
+        return '$who yeni bir etkinlik oluşturdu: "$eventTitle"';
+      case NotificationType.newGroupEvent:
+        final group = groupName.isEmpty ? 'Grubun' : groupName;
+        return '$group için yeni etkinlik: "$eventTitle"';
       case NotificationType.unknown:
         return '"$eventTitle" etkinliğiyle ilgili bir güncelleme var.';
     }

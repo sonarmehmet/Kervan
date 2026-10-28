@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Kervan - Firestore güvenlik kuralları
+// Rota - Firestore güvenlik kuralları
 //
 // İlkeler:
 //  - Yetki kontrolü burada, sunucu tarafında yapılır; arayüz kontrolü yeterli sayılmaz.
@@ -13,8 +13,9 @@ service cloud.firestore {
 
     // ---------- Yardımcı fonksiyonlar ----------
 
+    // Giriş yapmış VE e-postası doğrulanmış kullanıcı. Doğrulanmamış hesap hiçbir veriye erişemez.
     function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null && request.auth.token.email_verified == true;
     }
 
     function isSelf(uid) {
@@ -44,20 +45,56 @@ service cloud.firestore {
       return value is string && value.size() >= minLength && value.size() <= maxLength;
     }
 
+    function validMessage(data) {
+      return data.keys().hasOnly(['senderId', 'text', 'createdAt'])
+        && data.senderId == request.auth.uid
+        && validString(data.text, 1, 500)
+        && data.createdAt == request.time;
+    }
+
     // ---------- Kullanıcı profilleri ----------
 
     function validProfile(data) {
-      return data.keys().hasOnly(['displayName', 'bio', 'city', 'interests', 'createdAt', 'updatedAt'])
+      return data.keys().hasOnly(['displayName', 'bio', 'city', 'interests', 'createdAt', 'updatedAt',
+          'accountType', 'businessName'])
         && data.keys().hasAll(['displayName', 'bio', 'city', 'interests', 'createdAt'])
         && validString(data.displayName, 2, 40)
         && validString(data.bio, 0, 280)
         && validString(data.city, 0, 40)
         && data.interests is list
         && data.interests.size() <= 10
+        && (!('accountType' in data) || data.accountType in ['individual', 'business'])
+        && (!('businessName' in data) || validString(data.businessName, 2, 60))
+        && (!('businessName' in data) || ('accountType' in data && data.accountType == 'business'))
         && data.createdAt is timestamp;
     }
 
     match /users/{uid} {
+      // Takip ettiğim düzenleyenler (yalnızca kendim okur/yazarım).
+      match /following/{organizerId} {
+        allow read: if isSelf(uid);
+        allow create: if isSelf(uid)
+          && organizerId != uid
+          && request.resource.data.keys().hasOnly(['organizerId', 'organizerName', 'createdAt'])
+          && request.resource.data.organizerId == organizerId
+          && validString(request.resource.data.organizerName, 1, 40)
+          && request.resource.data.createdAt == request.time;
+        allow update: if false;
+        allow delete: if isSelf(uid);
+      }
+
+      // Kaydettiğim etkinlikler (yalnızca kendim okur/yazarım). saveCount'u sunucu hesaplar.
+      match /saved/{eventId} {
+        allow read: if isSelf(uid);
+        allow create: if isSelf(uid)
+          && request.resource.data.keys().hasOnly(['eventId', 'savedAt'])
+          && request.resource.data.eventId == eventId
+          && request.resource.data.savedAt == request.time
+          && exists(/databases/$(database)/documents/events/$(eventId));
+        allow update: if false;
+        allow delete: if isSelf(uid);
+      }
+
       // E-posta gibi özel veriler bu belgede tutulmaz; profil alanları herkese açıktır.
       allow read: if isSignedIn();
       allow create: if isSelf(uid) && validProfile(request.resource.data);
@@ -70,14 +107,41 @@ service cloud.firestore {
         allow read, delete: if isSelf(uid);
         allow create, update: if isSelf(uid) && blockedUid != uid;
       }
+
+      // Push bildirimi jetonları (belge kimliği = FCM jetonu). Gönderimi Cloud Functions yapar.
+      match /fcmTokens/{token} {
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid)
+          && request.resource.data.keys().hasOnly(['platform', 'updatedAt'])
+          && request.resource.data.keys().hasAll(['platform', 'updatedAt'])
+          && request.resource.data.platform in ['android', 'ios']
+          && request.resource.data.updatedAt == request.time;
+      }
     }
 
     // ---------- Etkinlikler ----------
 
+    // Fotoğraf yalnızca Firebase Storage indirme bağlantısı olabilir.
+    function validImageUrl(url) {
+      return validString(url, 20, 700)
+        && url.matches('^https://firebasestorage\\.googleapis\\.com/v0/b/.+');
+    }
+
+    // Etkinliğin isteğe bağlı alanları (oluşturma ve düzenleme için ortak).
+    function validEventExtras(data) {
+      return (!('imageUrl' in data) || validImageUrl(data.imageUrl))
+        && (!('durationMinutes' in data) || (data.durationMinutes is int
+            && data.durationMinutes >= 15 && data.durationMinutes <= 720))
+        && (!('costNote' in data) || validString(data.costNote, 1, 120))
+        && (!('terms' in data) || validString(data.terms, 1, 300));
+    }
+
     function validNewEvent(data) {
       return data.keys().hasOnly([
           'ownerId', 'ownerName', 'title', 'description', 'category', 'city', 'district',
-          'startsAt', 'capacity', 'acceptedCount', 'status', 'createdAt', 'updatedAt'
+          'startsAt', 'capacity', 'acceptedCount', 'status', 'createdAt', 'updatedAt',
+          'seriesId', 'seriesIndex', 'groupId', 'groupName',
+          'imageUrl', 'durationMinutes', 'costNote', 'terms'
         ])
         && data.keys().hasAll([
           'ownerId', 'ownerName', 'title', 'description', 'category', 'city', 'district',
@@ -97,14 +161,26 @@ service cloud.firestore {
         && data.capacity <= 100
         && data.acceptedCount == 0
         && data.status == 'active'
-        && data.createdAt == request.time;
+        && data.createdAt == request.time
+        && validEventExtras(data)
+        && (!('seriesId' in data) || validString(data.seriesId, 1, 40))
+        && (!('seriesIndex' in data) || (data.seriesIndex is int && data.seriesIndex >= 0 && data.seriesIndex < 12))
+        && (!('groupId' in data) || (
+          'groupName' in data
+          && validString(data.groupId, 1, 128)
+          && validString(data.groupName, 1, 50)
+          && get(/databases/$(database)/documents/groups/$(data.groupId)).data.ownerId == request.auth.uid
+          && get(/databases/$(database)/documents/groups/$(data.groupId)).data.status == 'active'
+        ));
     }
 
     function validEventUpdate(old, data) {
       return data.diff(old).affectedKeys().hasOnly([
           'title', 'description', 'category', 'city', 'district',
-          'startsAt', 'capacity', 'status', 'updatedAt'
+          'startsAt', 'capacity', 'status', 'updatedAt',
+          'imageUrl', 'durationMinutes', 'costNote', 'terms'
         ])
+        && validEventExtras(data)
         && validString(data.title, 3, 80)
         && validString(data.description, 0, 1000)
         && validString(data.category, 1, 30)
@@ -169,6 +245,25 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // Sohbet: yalnızca sahip ve onaylı katılımcılar okur/yazar. Gönderen adı saklanmaz
+      // (taklit riski); istemci adı katılımcı listesinden çözer.
+      match /messages/{messageId} {
+        allow read: if isEventOwner(eventId) || isParticipant(eventId);
+        allow create: if isSignedIn()
+          && (isEventOwner(eventId) || isParticipant(eventId))
+          && get(eventPath(eventId)).data.status == 'active'
+          && validMessage(request.resource.data);
+        allow update: if false;
+        allow delete: if isSelf(resource.data.senderId) || isEventOwner(eventId);
+      }
+
+      // Bekleme listesi: yalnızca Cloud Functions yazar; kişi kendi kaydını, sahip tüm listeyi okur.
+      match /waitlist/{userId} {
+        allow get: if isSelf(userId) || isEventOwner(eventId);
+        allow list: if isEventOwner(eventId);
+        allow write: if false;
+      }
+
       match /participants/{userId} {
         allow get: if isSelf(userId) || isEventOwner(eventId) || isParticipant(eventId);
         allow list: if isEventOwner(eventId) || isParticipant(eventId);
@@ -179,6 +274,53 @@ service cloud.firestore {
     // "Katıldığım etkinlikler" sorgusu (collectionGroup) için: yalnızca kendi kayıtları.
     match /{path=**}/participants/{userId} {
       allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // ---------- Gruplar ----------
+    // Oluşturma, katılma ve ayrılma Cloud Functions ile yapılır (üye sayısı tutarlılığı için).
+
+    function validGroupUpdate(old, data) {
+      return data.diff(old).affectedKeys().hasOnly(['name', 'description', 'category', 'city', 'status', 'updatedAt'])
+        && validString(data.name, 3, 50)
+        && validString(data.description, 0, 500)
+        && validString(data.category, 1, 30)
+        && validString(data.city, 2, 30)
+        && (data.status == old.status || (old.status == 'active' && data.status == 'closed'));
+    }
+
+    match /groups/{groupId} {
+      allow read: if isSignedIn();
+      allow create, delete: if false;
+      allow update: if isSignedIn()
+        && resource.data.ownerId == request.auth.uid
+        && validGroupUpdate(resource.data, request.resource.data);
+
+      match /members/{userId} {
+        allow get: if isSelf(userId)
+          || (isSignedIn() && get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid);
+        allow list: if isSignedIn()
+          && get(/databases/$(database)/documents/groups/$(groupId)).data.ownerId == request.auth.uid;
+        allow write: if false;
+      }
+    }
+
+    // "Üye olduğum gruplar" sorgusu (collectionGroup): yalnızca kendi kayıtları.
+    match /{path=**}/members/{userId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // ---------- Değerlendirmeler (anonim) ----------
+    // Ham kayıtlar yalnızca puanı veren tarafından okunabilir (hangi kişileri puanladığını görmek için).
+    // Hedef kişi ham kayıtları ASLA okuyamaz; yalnızca toplamları (userStats) görür.
+
+    match /ratings/{ratingId} {
+      allow read: if isSignedIn() && resource.data.raterId == request.auth.uid;
+      allow write: if false;
+    }
+
+    match /userStats/{uid} {
+      allow read: if isSignedIn();
+      allow write: if false;
     }
 
     // ---------- Bildirimler ----------
@@ -197,7 +339,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(
           ['reporterId', 'targetType', 'targetId', 'reason', 'details', 'status', 'createdAt'])
         && request.resource.data.reporterId == request.auth.uid
-        && request.resource.data.targetType in ['event', 'user']
+        && request.resource.data.targetType in ['event', 'user', 'group']
         && validString(request.resource.data.targetId, 1, 128)
         && request.resource.data.reason in ['spam', 'harassment', 'unsafe', 'fake', 'other']
         && validString(request.resource.data.details, 0, 500)

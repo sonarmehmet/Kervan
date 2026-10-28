@@ -1,4 +1,4 @@
-# Kervan — Firestore Veri Şeması (ORTAK SÖZLEŞME)
+# Rota — Firestore Veri Şeması (ORTAK SÖZLEŞME)
 
 Bu dosya üç geliştiricinin (A, B, C) uyması gereken tek doğru kaynaktır.
 `firestore.rules` bu şemaya göre yazılmıştır. Şemayı değiştirmek için önce bu dosya
@@ -23,6 +23,10 @@ Tüm alan adları İngilizce, `camelCase`. Tarihler Firestore `Timestamp`.
 
 Alt koleksiyon: `users/{uid}/blocks/{blockedUid}` — alanlar: `createdAt` (timestamp).
 Yalnızca `uid` sahibi okur/yazar.
+
+Alt koleksiyon: `users/{uid}/fcmTokens/{token}` — belge kimliği FCM jetonunun kendisi.
+Alanlar: `platform` (`android` | `ios`), `updatedAt` (sunucu zamanı). Yalnızca `uid` sahibi yazar/okur/siler.
+Push gönderimini `onNotificationCreated` Cloud Function'ı yapar; geçersiz jetonları siler.
 
 Silme: istemci silemez. Hesap silme `deleteAccount` Cloud Function ile yapılır.
 
@@ -72,6 +76,53 @@ Belge kimliği = isteği gönderenin uid'i (bir kullanıcı bir etkinliğe tek t
 Yalnızca Cloud Functions yazar. Alanlar: `userId`, `userName`, `joinedAt`.
 Okuma: kişinin kendisi, sahip, diğer onaylı katılımcılar.
 
+### 2.4 `events/{eventId}/messages/{messageId}`
+
+Etkinlik sohbeti. Alanlar: `senderId`, `text` (1-500), `createdAt` (= sunucu zamanı).
+Gönderen adı SAKLANMAZ; istemci adı sahip adı + katılımcı listesinden çözer (taklit riskini önler).
+Okuma/yazma: yalnızca sahip ve onaylı katılımcılar; yazma yalnızca etkinlik `active` iken.
+Güncelleme yok; silme: gönderen veya etkinlik sahibi. Hesap silinince mesajlar silinir.
+
+### 2.5 `events/{eventId}/waitlist/{userId}`
+
+Dolu etkinlikte bekleme listesi. Alanlar: `userId`, `userName`, `createdAt`. Yalnızca Cloud Functions yazar
+(`joinWaitlist`, `leaveWaitlist`). Yer açılınca (katılımcı sayısı azalır veya kapasite artar) en eski bekleyenlere
+`waitlist_spot_open` bildirimi gider ve kayıtları silinir; kişi normal katılma isteği gönderir.
+
+### 2.6 Etkinlikteki isteğe bağlı alanlar
+
+`seriesId`, `seriesIndex` (0-11): tekrarlayan seri (her tarih ayrı etkinlik). `groupId`, `groupName`: grup etkinliği
+(yalnızca grup sahibi bağlayabilir). `reminder24hSent`, `reminder1hSent`: yalnızca sunucu yazar (hatırlatma bayrakları).
+Bunlar oluşturulduktan sonra istemciden değiştirilemez.
+
+## 2e. Fotoğraf, kaydedilenler, hesap türü (v2 arayüz)
+
+- **Kapak fotoğrafı:** Firebase Storage `events/{uid}/{eventId}.jpg` (JPEG, en çok 3 MB; yalnızca sahibi yazar). İndirme bağlantısı `events/{id}.imageUrl` alanında tutulur ve kural gereği `firebasestorage.googleapis.com` adresi olmalıdır. Kurallar: `storage.rules`.
+- **Etkinlik alanları:** `imageUrl`, `durationMinutes` (15-720), `costNote` (≤120), `terms` (≤300) isteğe bağlıdır; `saveCount` yalnızca sunucu tarafından yazılır.
+- **`users/{uid}/saved/{eventId}`:** `{eventId, savedAt}`; yalnızca kendisi okur/yazar. `onSavedWritten` fonksiyonu `events/{id}.saveCount` değerini `collectionGroup('saved')` sayımıyla yeniden hesaplar (tekrar çalışsa da aynı sonucu verir).
+- **`users/{uid}.accountType`** (`individual` | `business`) ve **`businessName`** (2-60, yalnızca `business` iken) herkese görünür. Vergi bilgisi ve "doğrulanmış" rozeti henüz yoktur.
+- **Yerel (cihaz) ayarları:** tema (`theme_mode`) ve karşılama görüldü (`onboarding_seen`) `shared_preferences` ile saklanır, Firestore'a yazılmaz.
+
+## 2b. `groups/{groupId}` ve `groups/{groupId}/members/{userId}`
+
+Grup: `name` (3-50), `description` (0-500), `category`, `city`, `ownerId`, `ownerName`, `memberCount`, `status`
+(`active|closed`), `createdAt`, `updatedAt`. Oluşturma/katılma/ayrılma Cloud Functions ile (`createGroup`, `joinGroup`,
+`leaveGroup`); sahip yalnızca ad/açıklama/kategori/şehir günceller ve grubu `closed` yapar. Üyelik: `userId`, `userName`,
+`role` (`owner|member`), `joinedAt`; kişi kendi kaydını, sahip tüm üyeleri okur.
+
+## 2c. `users/{uid}/following/{organizerId}`
+
+Takip ettiğim düzenleyenler (`organizerId`, `organizerName`, `createdAt`). Yalnızca kendim okur/yazarım. Takip edilen kişi
+etkinlik oluşturunca `new_followed_event` bildirimi gider (grup üyesiyse `new_group_event`; seride yalnızca ilk etkinlik).
+
+## 2d. Anonim değerlendirme: `ratings/{id}` ve `userStats/{uid}`
+
+`submitRating` (callable): etkinlik başladıktan sonra, 30 gün içinde; katılımcı yalnızca düzenleyeni, düzenleyen yalnızca
+onaylı katılımcıları puanlar; 1-5 yıldız, yorum yok; (etkinlik, puanlayan, hedef) başına bir kez.
+`ratings/{eventId}_{raterId}_{targetId}`: ham kayıt, yalnızca puanlayan okuyabilir (hedef ASLA okuyamaz).
+`userStats/{uid}`: `organizerSum/Count`, `participantSum/Count`; giriş yapan herkes okur. İstemci ortalamayı en az 3 puan
+olunca gösterir (anonimlik). Hesap silinince ilgili ham kayıtlar ve istatistik silinir.
+
 ## 3. `notifications/{uid}/items/{itemId}`
 
 Yalnızca Cloud Functions oluşturur. Kullanıcı yalnızca `read` alanını günceller.
@@ -100,7 +151,18 @@ Yalnızca Cloud Functions oluşturur. Kullanıcı yalnızca `read` alanını gü
 
 ---
 
+## Zamanlanmış ve tetikleyici fonksiyonlar
+
+- `sendEventReminders` (her 15 dk): başlamasına 24 saat / 1 saat kalan aktif etkinliklerin sahibine ve onaylı
+  katılımcılarına `event_reminder_24h` / `event_reminder_1h` bildirimi (her biri en fazla bir kez).
+- `onEventCreated`: takipçilere ve grup üyelerine bildirim (düzenleyeni engelleyenler hariç, en fazla 500 kişi).
+- `onEventUpdated`: yer açılınca bekleme listesini bilgilendirir.
+
 ## Cloud Functions sözleşmesi (callable, bölge: `europe-west1`)
+
+Yeni callable'lar: `joinWaitlist`, `leaveWaitlist` ({eventId}); `submitRating` ({eventId, targetUserId, stars});
+`createGroup` ({name, description, category, city} → {groupId}), `joinGroup`, `leaveGroup` ({groupId}).
+Tüm callable'lar e-postası doğrulanmış oturum ister.
 
 | Fonksiyon | Giriş | Çıkış | İş |
 |---|---|---|---|

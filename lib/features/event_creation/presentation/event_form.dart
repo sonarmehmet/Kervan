@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/event_categories.dart';
@@ -6,8 +8,12 @@ import '../../../core/errors/error_mapper.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_formatters.dart';
 import '../../event_details/data/event.dart';
+import '../../event_discovery/presentation/category_picker.dart';
+import '../../groups/data/group.dart';
 import '../data/event_input.dart';
+import '../data/recurrence.dart';
 import '../data/event_validators.dart';
+import 'event_photo_picker.dart';
 
 /// Etkinlik oluşturma ve düzenleme için ortak form.
 class EventForm extends StatefulWidget {
@@ -16,6 +22,8 @@ class EventForm extends StatefulWidget {
     this.initial,
     this.initialAddress,
     this.minCapacity = 1,
+    this.ownedGroups = const <Group>[],
+    this.initialGroupId,
     required this.submitLabel,
     required this.onSubmit,
   });
@@ -26,6 +34,10 @@ class EventForm extends StatefulWidget {
 
   /// Düzenlemede onaylı katılımcı sayısı: kapasite bunun altına inemez.
   final int minCapacity;
+
+  /// Yalnızca oluşturmada: sahibi olduğum gruplar (etkinlik bir gruba bağlanabilir).
+  final List<Group> ownedGroups;
+  final String? initialGroupId;
   final String submitLabel;
 
   /// Hata fırlatırsa form mesajı gösterir ve düzenlemeye devam ettirir.
@@ -42,9 +54,17 @@ class _EventFormState extends State<EventForm> {
   late final TextEditingController _districtController;
   late final TextEditingController _capacityController;
   late final TextEditingController _addressController;
+  late final TextEditingController _costNoteController;
+  late final TextEditingController _termsController;
 
   String? _category;
+  int? _durationMinutes;
+  String? _imageUrl;
+  Uint8List? _newImage;
   String? _city;
+  String? _groupId;
+  Recurrence _recurrence = Recurrence.none;
+  int _occurrences = 4;
   DateTime? _startsAt;
   String? _categoryError;
   String? _dateError;
@@ -62,6 +82,10 @@ class _EventFormState extends State<EventForm> {
         TextEditingController(text: '${initial?.capacity ?? 10}');
     _addressController =
         TextEditingController(text: widget.initialAddress ?? '');
+    _costNoteController = TextEditingController(text: initial?.costNote ?? '');
+    _termsController = TextEditingController(text: initial?.terms ?? '');
+    _durationMinutes = initial?.durationMinutes;
+    _imageUrl = initial?.imageUrl;
     _category = (initial != null && EventCategory.isValidId(initial.category))
         ? initial.category
         : null;
@@ -69,6 +93,7 @@ class _EventFormState extends State<EventForm> {
         ? initial.city
         : null;
     _startsAt = initial?.startsAt;
+    _groupId = widget.initialGroupId;
   }
 
   @override
@@ -78,7 +103,17 @@ class _EventFormState extends State<EventForm> {
     _districtController.dispose();
     _capacityController.dispose();
     _addressController.dispose();
+    _costNoteController.dispose();
+    _termsController.dispose();
     super.dispose();
+  }
+
+  Group? get _selectedGroup {
+    if (widget.initial != null || _groupId == null) return null;
+    for (final group in widget.ownedGroups) {
+      if (group.id == _groupId) return group;
+    }
+    return null;
   }
 
   Future<void> _pickDateTime() async {
@@ -127,6 +162,15 @@ class _EventFormState extends State<EventForm> {
           startsAt: _startsAt!,
           capacity: int.parse(_capacityController.text.trim()),
           address: _addressController.text.trim(),
+          recurrence: widget.initial == null ? _recurrence : Recurrence.none,
+          occurrences: _recurrence == Recurrence.none ? 1 : _occurrences,
+          groupId: _selectedGroup?.id,
+          groupName: _selectedGroup?.name,
+          durationMinutes: _durationMinutes,
+          costNote: _costNoteController.text.trim(),
+          terms: _termsController.text.trim(),
+          imageUrl: _newImage == null ? _imageUrl : null,
+          newImage: _newImage,
         ),
       );
     } catch (error) {
@@ -147,6 +191,16 @@ class _EventFormState extends State<EventForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          EventPhotoPicker(
+            existingUrl: _imageUrl,
+            newImage: _newImage,
+            onPicked: (bytes) => setState(() => _newImage = bytes),
+            onRemoved: () => setState(() {
+              _newImage = null;
+              _imageUrl = null;
+            }),
+          ),
+          const SizedBox(height: 16),
           TextFormField(
             controller: _titleController,
             textInputAction: TextInputAction.next,
@@ -161,21 +215,35 @@ class _EventFormState extends State<EventForm> {
           const SizedBox(height: 8),
           Text('Kategori', style: theme.textTheme.titleSmall),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final category in EventCategory.all)
-                ChoiceChip(
-                  avatar: Icon(category.icon, size: 18),
-                  label: Text(category.label),
-                  selected: _category == category.id,
-                  onSelected: (_) => setState(() {
-                    _category = category.id;
-                    _categoryError = null;
-                  }),
-                ),
-            ],
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () async {
+              final picked =
+                  await showCategoryPicker(context, selectedId: _category);
+              if (picked == null || picked.isEmpty) return;
+              setState(() {
+                _category = picked;
+                _categoryError = null;
+              });
+            },
+            child: InputDecorator(
+              decoration: AppTheme.inputDecoration(label: 'Kategori').copyWith(
+                suffixIcon: const Icon(Icons.arrow_drop_down),
+                errorText: null,
+              ),
+              child: _category == null
+                  ? Text(
+                      'Kategori seç (148 seçenek, aranabilir)',
+                      style: TextStyle(color: theme.hintColor),
+                    )
+                  : Row(
+                      children: [
+                        Icon(EventCategory.byId(_category!).icon, size: 20),
+                        const SizedBox(width: 8),
+                        Flexible(child: Text(EventCategory.byId(_category!).label)),
+                      ],
+                    ),
+            ),
           ),
           if (_categoryError != null)
             Padding(
@@ -203,6 +271,18 @@ class _EventFormState extends State<EventForm> {
                     : DateFormatters.eventDateTime(_startsAt!),
               ),
             ),
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<int?>(
+            initialValue: _durationMinutes,
+            isExpanded: true,
+            decoration: AppTheme.inputDecoration(label: 'Tahmini süre (isteğe bağlı)'),
+            items: [
+              const DropdownMenuItem<int?>(value: null, child: Text('Belirtilmedi')),
+              for (final minutes in EventLimits.durations)
+                DropdownMenuItem<int?>(value: minutes, child: Text(durationLabel(minutes))),
+            ],
+            onChanged: (value) => setState(() => _durationMinutes = value),
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
@@ -274,6 +354,91 @@ class _EventFormState extends State<EventForm> {
             ),
             validator: EventValidators.description,
           ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _costNoteController,
+            maxLength: EventLimits.costNoteMax,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: AppTheme.inputDecoration(
+              label: 'Maliyet notu (isteğe bağlı)',
+              hint: 'Örn. Ücretsiz, hesap katılımcılara aittir (~250 TL)',
+            ),
+            validator: EventValidators.costNote,
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _termsController,
+            maxLines: 3,
+            maxLength: EventLimits.termsMax,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: AppTheme.inputDecoration(
+              label: 'Katılım koşulları (isteğe bağlı)',
+              hint: 'Örn. Gelemeyeceksen önceden haber ver, geç kalanı beklemeyiz.',
+            ),
+            validator: EventValidators.terms,
+          ),
+          if (widget.initial == null) ...[
+            if (widget.ownedGroups.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String?>(
+                initialValue: _selectedGroup?.id,
+                isExpanded: true,
+                decoration: AppTheme.inputDecoration(label: 'Grup (isteğe bağlı)'),
+                items: [
+                  const DropdownMenuItem<String?>(value: null, child: Text('Grup yok')),
+                  for (final group in widget.ownedGroups)
+                    DropdownMenuItem<String?>(value: group.id, child: Text(group.name)),
+                ],
+                onChanged: (value) => setState(() => _groupId = value),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 12, top: 4),
+                child: Text(
+                  'Gruba bağlı etkinlikte grup üyelerine bildirim gider.',
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            DropdownButtonFormField<Recurrence>(
+              initialValue: _recurrence,
+              isExpanded: true,
+              decoration: AppTheme.inputDecoration(label: 'Tekrar'),
+              items: [
+                for (final rule in Recurrence.values)
+                  DropdownMenuItem<Recurrence>(value: rule, child: Text(rule.label)),
+              ],
+              onChanged: (value) => setState(() => _recurrence = value ?? Recurrence.none),
+            ),
+            if (_recurrence != Recurrence.none) ...[
+              const SizedBox(height: 16),
+              DropdownButtonFormField<int>(
+                initialValue: _occurrences,
+                decoration: AppTheme.inputDecoration(label: 'Toplam etkinlik sayısı'),
+                items: [
+                  for (var n = RecurrenceLimits.minOccurrences; n <= RecurrenceLimits.maxOccurrences; n++)
+                    DropdownMenuItem<int>(value: n, child: Text('$n etkinlik')),
+                ],
+                onChanged: (value) => setState(() => _occurrences = value ?? 4),
+              ),
+              if (_startsAt != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 12, top: 6),
+                  child: Text(
+                    'Tarihler: ${occurrenceDates(_startsAt!, _recurrence, _occurrences).take(3).map(DateFormatters.shortDate).join(', ')}'
+                    '${_occurrences > 3 ? ' ...' : ''}',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.only(left: 12, top: 4),
+                child: Text(
+                  'Her tarih ayrı bir etkinlik olur; istediğini ayrı ayrı iptal edebilirsin.',
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ),
+            ],
+          ],
           const SizedBox(height: 16),
           FilledButton(
             onPressed: _saving ? null : _submit,

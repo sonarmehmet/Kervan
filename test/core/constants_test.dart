@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kervan/core/constants/event_categories.dart';
-import 'package:kervan/core/constants/firestore_paths.dart';
-import 'package:kervan/core/constants/turkey_cities.dart';
+import 'package:rota/core/constants/event_categories.dart';
+import 'package:rota/core/constants/firestore_paths.dart';
+import 'package:rota/core/constants/turkey_cities.dart';
 
 void main() {
   group('TurkeyCities', () {
@@ -21,6 +21,34 @@ void main() {
     test('kimlikler benzersiz', () {
       final ids = EventCategory.all.map((c) => c.id).toList();
       expect(ids.toSet().length, ids.length);
+    });
+
+    test('en az 100 kategori var ve eski kimlikler korunuyor', () {
+      expect(EventCategory.all.length, greaterThanOrEqualTo(100));
+      for (final id in [
+        'sport', 'yoga', 'walking', 'hiking', 'cycling', 'coffee',
+        'games', 'music', 'art', 'learning', 'volunteering', 'other',
+      ]) {
+        expect(EventCategory.isValidId(id), isTrue, reason: id);
+      }
+    });
+
+    test('kimlikler firestore.rules sınırına (1-30) ve biçime uyar', () {
+      for (final category in EventCategory.all) {
+        expect(category.id.length, inInclusiveRange(1, 30), reason: category.id);
+        expect(RegExp(r'^[a-z0-9_]+$').hasMatch(category.id), isTrue, reason: category.id);
+        expect(category.label.trim(), isNotEmpty);
+      }
+    });
+
+    test('her kategori geçerli bir gruba ait, her grubun kategorisi var', () {
+      for (final group in EventCategory.groups) {
+        expect(EventCategory.inGroup(group), isNotEmpty, reason: group.id);
+      }
+      final groupIds = EventCategory.groups.map((g) => g.id).toSet();
+      for (final category in EventCategory.all) {
+        expect(groupIds.contains(category.group.id), isTrue, reason: category.id);
+      }
     });
 
     test('byId bilinmeyen kimlikte other döner', () {

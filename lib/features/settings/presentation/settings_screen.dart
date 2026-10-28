@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/errors/error_mapper.dart';
 import '../../../core/router/route_names.dart';
+import '../../../core/theme/theme_mode_controller.dart';
 import '../../authentication/data/auth_repository.dart';
+import '../../authentication/data/session_service.dart';
 import '../data/account_repository.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -20,7 +22,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _signOut() async {
     setState(() => _busy = true);
     try {
-      await ref.read(authRepositoryProvider).signOut();
+      await ref.read(sessionServiceProvider).signOut();
       // Router oturum kapanınca giriş ekranına yönlendirir.
     } catch (error) {
       _showError(error);
@@ -96,11 +98,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 title: const Text('E-posta'),
                 subtitle: Text(email),
               ),
+            const _ThemeTile(),
             ListTile(
               leading: const Icon(Icons.block),
               title: const Text('Engellenen kullanıcılar'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push(RoutePaths.blockedUsers),
+            ),
+            ListTile(
+              leading: const Icon(Icons.notifications_active_outlined),
+              title: const Text('Takip ettiklerim'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push(RoutePaths.following),
+            ),
+            ListTile(
+              leading: const Icon(Icons.gavel_outlined),
+              title: const Text('Kullanım koşulları'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push(RoutePaths.terms),
             ),
             ListTile(
               leading: const Icon(Icons.privacy_tip_outlined),
@@ -128,6 +143,52 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: Center(child: CircularProgressIndicator()),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Görünüm: sistem varsayılanı, açık veya koyu tema.
+class _ThemeTile extends ConsumerWidget {
+  const _ThemeTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(themeModeProvider);
+    return ListTile(
+      leading: const Icon(Icons.brightness_6_outlined),
+      title: const Text('Görünüm'),
+      subtitle: Text(ThemeModeController.label(mode)),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => showDialog<void>(
+        context: context,
+        builder: (dialogContext) => Consumer(
+          builder: (context, ref, _) {
+            final current = ref.watch(themeModeProvider);
+            return SimpleDialog(
+              title: const Text('Görünüm'),
+              children: [
+                RadioGroup<ThemeMode>(
+                  groupValue: current,
+                  onChanged: (value) {
+                    if (value == null) return;
+                    ref.read(themeModeProvider.notifier).setMode(value);
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: Column(
+                    children: [
+                      for (final m in ThemeMode.values)
+                        RadioListTile<ThemeMode>(
+                          value: m,
+                          title: Text(ThemeModeController.label(m)),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

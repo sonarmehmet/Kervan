@@ -7,7 +7,8 @@ import '../../../core/services/firebase_providers.dart';
 /// Şikâyet edilen şeyin türü. `id` Firestore'a yazılır (firestore.rules: 'event' | 'user').
 enum ReportTargetType {
   event('event'),
-  user('user');
+  user('user'),
+  group('group');
 
   const ReportTargetType(this.id);
   final String id;

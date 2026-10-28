@@ -36,3 +36,4 @@ functions/lib/
 rules_test/node_modules/
 
 .DS_Store
+web_firebase.env

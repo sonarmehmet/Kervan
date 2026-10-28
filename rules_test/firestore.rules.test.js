@@ -1,4 +1,4 @@
-// Kervan - firestore.rules testleri (Firebase Emulator ile çalışır).
+// Rota - firestore.rules testleri (Firebase Emulator ile çalışır).
 // Çalıştırma: rules_test klasöründe `npm install` sonra `npm test`.
 const {readFileSync} = require("node:fs");
 const {before, after, beforeEach, describe, it} = require("node:test");
@@ -74,7 +74,10 @@ async function seed(callback) {
   });
 }
 
-const dbOf = (uid) => testEnv.authenticatedContext(uid).firestore();
+const dbOf = (uid) =>
+  testEnv.authenticatedContext(uid, {email_verified: true}).firestore();
+const unverifiedDb = (uid) =>
+  testEnv.authenticatedContext(uid, {email_verified: false}).firestore();
 const anonDb = () => testEnv.unauthenticatedContext().firestore();
 
 async function seedEvent(overrides = {}) {
@@ -92,7 +95,7 @@ async function seedEvent(overrides = {}) {
 
 before(async () => {
   testEnv = await initializeTestEnvironment({
-    projectId: "demo-kervan",
+    projectId: "demo-rota",
     firestore: {
       rules: readFileSync("firestore.rules", "utf8"),
       host,
@@ -110,6 +113,15 @@ beforeEach(async () => {
 });
 
 describe("users", () => {
+  it("kurumsal hesap: işletme adı yalnızca business türüyle", async () => {
+    await assertSucceeds(setDoc(doc(dbOf(ALICE), "users", ALICE),
+      {...validProfile(), accountType: "business", businessName: "Kahve Atölyesi"}));
+    await assertFails(setDoc(doc(dbOf(BOB), "users", BOB),
+      {...validProfile(), accountType: "individual", businessName: "Kahve Atölyesi"}));
+    await assertFails(setDoc(doc(dbOf(BOB), "users", BOB),
+      {...validProfile(), accountType: "admin"}));
+  });
+
   it("kullanıcı kendi profilini oluşturabilir", async () => {
     await assertSucceeds(setDoc(doc(dbOf(ALICE), "users", ALICE), validProfile()));
   });
@@ -161,6 +173,42 @@ describe("users", () => {
     await assertFails(
       setDoc(doc(dbOf(ALICE), "users", ALICE, "blocks", ALICE), {createdAt: serverTimestamp()})
     );
+  });
+});
+
+describe("fcmTokens (push jetonları)", () => {
+  const tokenRef = (db, uid, token = "tok:abc_123") =>
+    doc(db, "users", uid, "fcmTokens", token);
+
+  it("kullanıcı kendi jetonunu kaydedebilir", async () => {
+    await assertSucceeds(
+      setDoc(tokenRef(dbOf(ALICE), ALICE), {platform: "android", updatedAt: serverTimestamp()})
+    );
+  });
+
+  it("başkası adına jeton kaydedilemez", async () => {
+    await assertFails(
+      setDoc(tokenRef(dbOf(BOB), ALICE), {platform: "android", updatedAt: serverTimestamp()})
+    );
+  });
+
+  it("geçersiz platform veya fazladan alan reddedilir", async () => {
+    await assertFails(
+      setDoc(tokenRef(dbOf(ALICE), ALICE), {platform: "windows", updatedAt: serverTimestamp()})
+    );
+    await assertFails(
+      setDoc(tokenRef(dbOf(ALICE), ALICE), {
+        platform: "ios",
+        updatedAt: serverTimestamp(),
+        extra: 1,
+      })
+    );
+  });
+
+  it("kullanıcı kendi jetonunu siler, başkasınınkini okuyamaz", async () => {
+    await seed((db) => setDoc(tokenRef(db, ALICE), {platform: "android", updatedAt: Timestamp.now()}));
+    await assertFails(getDoc(tokenRef(dbOf(BOB), ALICE)));
+    await assertSucceeds(deleteDoc(tokenRef(dbOf(ALICE), ALICE)));
   });
 });
 
@@ -461,5 +509,375 @@ describe("reports (şikâyetler)", () => {
     await assertFails(getDoc(doc(dbOf(ALICE), "reports", "r1")));
     await assertFails(updateDoc(doc(dbOf(ALICE), "reports", "r1"), {status: "closed"}));
     await assertFails(deleteDoc(doc(dbOf(ALICE), "reports", "r1")));
+  });
+});
+
+describe("messages (etkinlik sohbeti)", () => {
+  const path = ["events", EVENT, "messages"];
+  const msg = (senderId, extra = {}) => ({
+    senderId,
+    text: "Merhaba",
+    createdAt: serverTimestamp(),
+    ...extra,
+  });
+
+  async function seedChat() {
+    await seedEvent();
+    await seed(async (db) => {
+      await setDoc(doc(db, "events", EVENT, "participants", ALICE), {
+        userId: ALICE,
+        userName: "Ali",
+        joinedAt: Timestamp.now(),
+      });
+      await setDoc(doc(db, "events", EVENT, "messages", "m1"), {
+        senderId: ALICE,
+        text: "Selam",
+        createdAt: Timestamp.now(),
+      });
+    });
+  }
+
+  it("sahip ve katılımcı yazabilir ve okuyabilir", async () => {
+    await seedChat();
+    await assertSucceeds(addDocMsg(dbOf(ALICE), msg(ALICE)));
+    await assertSucceeds(addDocMsg(dbOf(OWNER), msg(OWNER)));
+    await assertSucceeds(getDocs(collection(dbOf(ALICE), ...path)));
+    await assertSucceeds(getDocs(collection(dbOf(OWNER), ...path)));
+  });
+
+  it("yabancı ve girişsiz kullanıcı okuyamaz ve yazamaz", async () => {
+    await seedChat();
+    await assertFails(getDocs(collection(dbOf(BOB), ...path)));
+    await assertFails(addDocMsg(dbOf(BOB), msg(BOB)));
+    await assertFails(getDocs(collection(anonDb(), ...path)));
+    await assertFails(addDocMsg(anonDb(), msg(BOB)));
+  });
+
+  it("başkası adına mesaj yazılamaz", async () => {
+    await seedChat();
+    await assertFails(addDocMsg(dbOf(ALICE), msg(OWNER)));
+  });
+
+  it("geçersiz içerik reddedilir", async () => {
+    await seedChat();
+    await assertFails(addDocMsg(dbOf(ALICE), msg(ALICE, {text: ""})));
+    await assertFails(addDocMsg(dbOf(ALICE), msg(ALICE, {text: "a".repeat(501)})));
+    await assertFails(addDocMsg(dbOf(ALICE), msg(ALICE, {senderName: "Sahte"})));
+    await assertFails(addDocMsg(dbOf(ALICE), msg(ALICE, {createdAt: Timestamp.now()})));
+    await assertSucceeds(addDocMsg(dbOf(ALICE), msg(ALICE, {text: "a".repeat(500)})));
+  });
+
+  it("iptal edilmiş etkinlikte yazılamaz", async () => {
+    await seedChat();
+    await seed((db) => updateDoc(doc(db, "events", EVENT), {status: "cancelled"}));
+    await assertFails(addDocMsg(dbOf(ALICE), msg(ALICE)));
+    await assertSucceeds(getDocs(collection(dbOf(ALICE), ...path)));
+  });
+
+  it("mesaj güncellenemez; yalnızca gönderen veya sahip siler", async () => {
+    await seedChat();
+    await assertFails(updateDoc(doc(dbOf(ALICE), ...path, "m1"), {text: "değişti"}));
+    await assertFails(deleteDoc(doc(dbOf(BOB), ...path, "m1")));
+    await assertSucceeds(deleteDoc(doc(dbOf(ALICE), ...path, "m1")));
+    await seed((db) =>
+      setDoc(doc(db, "events", EVENT, "messages", "m2"), {
+        senderId: ALICE,
+        text: "x",
+        createdAt: Timestamp.now(),
+      })
+    );
+    await assertSucceeds(deleteDoc(doc(dbOf(OWNER), ...path, "m2")));
+  });
+});
+
+function addDocMsg(db, data) {
+  return setDoc(doc(collection(db, "events", EVENT, "messages")), data);
+}
+
+describe("e-posta doğrulaması", () => {
+  it("doğrulanmamış kullanıcı profil, etkinlik ve sohbete erişemez", async () => {
+    await seedEvent();
+    const db = unverifiedDb(ALICE);
+    await assertFails(setDoc(doc(db, "users", ALICE), validProfile()));
+    await assertFails(setDoc(doc(db, "events", "yeni"), validEvent(ALICE)));
+    await assertFails(getDoc(doc(db, "events", EVENT)));
+    await assertFails(getDocs(collection(db, "events")));
+  });
+
+  it("doğrulanmış kullanıcı kendi profilini oluşturabilir", async () => {
+    await assertSucceeds(setDoc(doc(dbOf(ALICE), "users", ALICE), validProfile()));
+  });
+});
+
+describe("seri ve grup alanlı etkinlik", () => {
+  async function seedGroup(ownerId = OWNER, status = "active") {
+    await seed((db) =>
+      setDoc(doc(db, "groups", "g1"), {
+        name: "Koşu Grubu",
+        description: "",
+        category: "running",
+        city: "Elazığ",
+        ownerId,
+        ownerName: "Sahip",
+        memberCount: 1,
+        status,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      })
+    );
+  }
+
+  it("seri alanlarıyla etkinlik oluşturulabilir, geçersiz sıra reddedilir", async () => {
+    const db = dbOf(OWNER);
+    await assertSucceeds(
+      setDoc(doc(db, "events", "s0"), {...validEvent(), seriesId: "abc", seriesIndex: 0})
+    );
+    await assertFails(
+      setDoc(doc(db, "events", "s1"), {...validEvent(), seriesId: "abc", seriesIndex: 12})
+    );
+    await assertFails(
+      setDoc(doc(db, "events", "s2"), {...validEvent(), seriesId: "", seriesIndex: 1})
+    );
+  });
+
+  it("gruba bağlı etkinliği yalnızca grup sahibi oluşturabilir", async () => {
+    await seedGroup(OWNER);
+    const ev = {...validEvent(OWNER), groupId: "g1", groupName: "Koşu Grubu"};
+    await assertSucceeds(setDoc(doc(dbOf(OWNER), "events", "ge1"), ev));
+    await assertFails(
+      setDoc(doc(dbOf(ALICE), "events", "ge2"), {...validEvent(ALICE), groupId: "g1", groupName: "Koşu Grubu"})
+    );
+  });
+
+  it("grup adı eksikse, grup yoksa veya kapalıysa reddedilir", async () => {
+    await seedGroup(OWNER, "closed");
+    await assertFails(setDoc(doc(dbOf(OWNER), "events", "ge3"), {...validEvent(OWNER), groupId: "g1", groupName: "x"}));
+    await seedGroup(OWNER, "active");
+    await assertFails(setDoc(doc(dbOf(OWNER), "events", "ge4"), {...validEvent(OWNER), groupId: "g1"}));
+    await assertFails(setDoc(doc(dbOf(OWNER), "events", "ge5"), {...validEvent(OWNER), groupId: "yok", groupName: "x"}));
+  });
+
+  it("seri ve grup alanları sonradan değiştirilemez", async () => {
+    await seedEvent({seriesId: "abc", seriesIndex: 0});
+    await assertFails(updateDoc(doc(dbOf(OWNER), "events", EVENT), {seriesId: "baska"}));
+    await assertFails(updateDoc(doc(dbOf(OWNER), "events", EVENT), {groupId: "g1", groupName: "x"}));
+  });
+});
+
+describe("groups (gruplar)", () => {
+  async function seedGroup() {
+    await seed(async (db) => {
+      await setDoc(doc(db, "groups", "g1"), {
+        name: "Koşu Grubu",
+        description: "Haftalık koşu",
+        category: "running",
+        city: "Elazığ",
+        ownerId: OWNER,
+        ownerName: "Sahip",
+        memberCount: 2,
+        status: "active",
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+      await setDoc(doc(db, "groups", "g1", "members", ALICE), {
+        userId: ALICE, userName: "Ali", role: "member", joinedAt: Timestamp.now(),
+      });
+    });
+  }
+
+  it("giriş yapan herkes grubu okur; oluşturma ve silme yok", async () => {
+    await seedGroup();
+    await assertSucceeds(getDoc(doc(dbOf(BOB), "groups", "g1")));
+    await assertFails(getDoc(doc(anonDb(), "groups", "g1")));
+    await assertFails(setDoc(doc(dbOf(BOB), "groups", "g2"), {name: "Yeni grup", ownerId: BOB}));
+    await assertFails(deleteDoc(doc(dbOf(OWNER), "groups", "g1")));
+  });
+
+  it("yalnızca sahip günceller; üye sayısı ve sahip alanı değiştirilemez", async () => {
+    await seedGroup();
+    await assertSucceeds(updateDoc(doc(dbOf(OWNER), "groups", "g1"), {description: "Yeni", updatedAt: serverTimestamp()}));
+    await assertFails(updateDoc(doc(dbOf(ALICE), "groups", "g1"), {description: "Hack"}));
+    await assertFails(updateDoc(doc(dbOf(OWNER), "groups", "g1"), {memberCount: 99}));
+    await assertFails(updateDoc(doc(dbOf(OWNER), "groups", "g1"), {ownerId: ALICE}));
+  });
+
+  it("grup active -> closed olabilir, geri açılamaz", async () => {
+    await seedGroup();
+    await assertSucceeds(updateDoc(doc(dbOf(OWNER), "groups", "g1"), {status: "closed"}));
+    await assertFails(updateDoc(doc(dbOf(OWNER), "groups", "g1"), {status: "active"}));
+  });
+
+  it("üyelik kaydını kişi kendisi okur, istemci yazamaz", async () => {
+    await seedGroup();
+    await assertSucceeds(getDoc(doc(dbOf(ALICE), "groups", "g1", "members", ALICE)));
+    await assertFails(getDoc(doc(dbOf(BOB), "groups", "g1", "members", ALICE)));
+    await assertSucceeds(getDocs(collection(dbOf(OWNER), "groups", "g1", "members")));
+    await assertFails(getDocs(collection(dbOf(BOB), "groups", "g1", "members")));
+    await assertFails(
+      setDoc(doc(dbOf(BOB), "groups", "g1", "members", BOB), {
+        userId: BOB, userName: "Bob", role: "member", joinedAt: serverTimestamp(),
+      })
+    );
+  });
+
+  it("'üye olduğum gruplar' sorgusu yalnızca kendi kayıtları için çalışır", async () => {
+    await seedGroup();
+    await assertSucceeds(getDocs(query(collectionGroup(dbOf(ALICE), "members"), where("userId", "==", ALICE))));
+    await assertFails(getDocs(query(collectionGroup(dbOf(BOB), "members"), where("userId", "==", ALICE))));
+  });
+
+  it("grup şikâyeti oluşturulabilir", async () => {
+    await assertSucceeds(
+      setDoc(doc(collection(dbOf(ALICE), "reports")), {...validReport(ALICE), targetType: "group", targetId: "g1"})
+    );
+  });
+});
+
+describe("takip, bekleme listesi, değerlendirme", () => {
+  it("takip kaydı: yalnızca kendi altına, kendini takip edemez", async () => {
+    const db = dbOf(ALICE);
+    const follow = (id) => ({organizerId: id, organizerName: "Sahip", createdAt: serverTimestamp()});
+    await assertSucceeds(setDoc(doc(db, "users", ALICE, "following", OWNER), follow(OWNER)));
+    await assertFails(setDoc(doc(db, "users", ALICE, "following", ALICE), follow(ALICE)));
+    await assertFails(setDoc(doc(dbOf(BOB), "users", ALICE, "following", OWNER), follow(OWNER)));
+    await assertFails(setDoc(doc(db, "users", ALICE, "following", BOB), follow(OWNER)));
+    await assertFails(getDoc(doc(dbOf(BOB), "users", ALICE, "following", OWNER)));
+    await assertSucceeds(getDoc(doc(db, "users", ALICE, "following", OWNER)));
+    await assertSucceeds(deleteDoc(doc(db, "users", ALICE, "following", OWNER)));
+  });
+
+  it("bekleme listesi: istemci yazamaz; kişi kendini, sahip listeyi okur", async () => {
+    await seedEvent();
+    await seed((db) =>
+      setDoc(doc(db, "events", EVENT, "waitlist", ALICE), {userId: ALICE, userName: "Ali", createdAt: Timestamp.now()})
+    );
+    await assertFails(
+      setDoc(doc(dbOf(BOB), "events", EVENT, "waitlist", BOB), {userId: BOB, userName: "Bob", createdAt: serverTimestamp()})
+    );
+    await assertSucceeds(getDoc(doc(dbOf(ALICE), "events", EVENT, "waitlist", ALICE)));
+    await assertFails(getDoc(doc(dbOf(BOB), "events", EVENT, "waitlist", ALICE)));
+    await assertSucceeds(getDocs(collection(dbOf(OWNER), "events", EVENT, "waitlist")));
+    await assertFails(getDocs(collection(dbOf(ALICE), "events", EVENT, "waitlist")));
+    await assertFails(deleteDoc(doc(dbOf(ALICE), "events", EVENT, "waitlist", ALICE)));
+  });
+
+  it("değerlendirme anonimliği: hedef ham kaydı okuyamaz, puanlayan okuyabilir", async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, "ratings", "e_a_o"), {
+        eventId: "e", raterId: ALICE, targetId: OWNER, targetRole: "organizer", stars: 5, createdAt: Timestamp.now(),
+      });
+      await setDoc(doc(db, "userStats", OWNER), {organizerSum: 5, organizerCount: 1});
+    });
+    await assertFails(getDoc(doc(dbOf(OWNER), "ratings", "e_a_o")));
+    await assertFails(getDoc(doc(dbOf(BOB), "ratings", "e_a_o")));
+    await assertSucceeds(getDoc(doc(dbOf(ALICE), "ratings", "e_a_o")));
+    await assertSucceeds(getDocs(query(collection(dbOf(ALICE), "ratings"), where("raterId", "==", ALICE))));
+    await assertFails(getDocs(query(collection(dbOf(OWNER), "ratings"), where("targetId", "==", OWNER))));
+    await assertFails(getDocs(collection(dbOf(OWNER), "ratings")));
+  });
+
+  it("değerlendirme ve istatistik istemciden yazılamaz; istatistik herkese okunur", async () => {
+    await assertFails(
+      setDoc(doc(dbOf(ALICE), "ratings", "x"), {eventId: "e", raterId: ALICE, targetId: OWNER, stars: 5})
+    );
+    await assertFails(setDoc(doc(dbOf(ALICE), "userStats", ALICE), {organizerSum: 500, organizerCount: 100}));
+    await seed((db) => setDoc(doc(db, "userStats", OWNER), {organizerSum: 5, organizerCount: 1}));
+    await assertSucceeds(getDoc(doc(dbOf(BOB), "userStats", OWNER)));
+    await assertFails(getDoc(doc(anonDb(), "userStats", OWNER)));
+  });
+});
+
+describe("etkinlik ek alanları (fotoğraf, süre, maliyet, koşullar)", () => {
+  const goodUrl =
+    "https://firebasestorage.googleapis.com/v0/b/demo-rota.appspot.com/o/events%2Fowner1%2Fa.jpg?alt=media&token=abc";
+
+  it("geçerli ek alanlarla etkinlik oluşturulabilir", async () => {
+    await assertSucceeds(
+      setDoc(doc(dbOf(OWNER), "events", "x1"), {
+        ...validEvent(),
+        imageUrl: goodUrl,
+        durationMinutes: 120,
+        costNote: "Hesap katılımcılara aittir",
+        terms: "Gelemeyeceksen haber ver.",
+      })
+    );
+  });
+
+  it("Storage dışı bir görsel bağlantısı reddedilir", async () => {
+    await assertFails(
+      setDoc(doc(dbOf(OWNER), "events", "x2"), {...validEvent(), imageUrl: "https://example.com/a.jpg"})
+    );
+    await assertFails(
+      setDoc(doc(dbOf(OWNER), "events", "x3"), {...validEvent(), imageUrl: "javascript:alert(1)"})
+    );
+  });
+
+  it("süre 15-720 dakika ve tam sayı olmalı", async () => {
+    await assertFails(setDoc(doc(dbOf(OWNER), "events", "x4"), {...validEvent(), durationMinutes: 5}));
+    await assertFails(setDoc(doc(dbOf(OWNER), "events", "x5"), {...validEvent(), durationMinutes: 721}));
+    await assertFails(setDoc(doc(dbOf(OWNER), "events", "x6"), {...validEvent(), durationMinutes: "120"}));
+  });
+
+  it("maliyet notu 120, koşullar 300 karakteri aşamaz", async () => {
+    await assertFails(setDoc(doc(dbOf(OWNER), "events", "x7"), {...validEvent(), costNote: "a".repeat(121)}));
+    await assertFails(setDoc(doc(dbOf(OWNER), "events", "x8"), {...validEvent(), terms: "a".repeat(301)}));
+  });
+
+  it("bilinmeyen alan eklenemez", async () => {
+    await assertFails(setDoc(doc(dbOf(OWNER), "events", "x9"), {...validEvent(), price: 10}));
+  });
+
+  it("sahip ek alanları günceller ve fotoğrafı kaldırabilir, başkası yapamaz", async () => {
+    await seedEvent({imageUrl: goodUrl, durationMinutes: 60});
+    await assertSucceeds(
+      updateDoc(doc(dbOf(OWNER), "events", EVENT), {durationMinutes: 90, costNote: "Ücretsiz"})
+    );
+    await assertFails(updateDoc(doc(dbOf(BOB), "events", EVENT), {costNote: "Hacked"}));
+    await assertFails(updateDoc(doc(dbOf(OWNER), "events", EVENT), {imageUrl: "https://example.com/x.png"}));
+    const {deleteField} = require("firebase/firestore");
+    await assertSucceeds(updateDoc(doc(dbOf(OWNER), "events", EVENT), {imageUrl: deleteField()}));
+  });
+});
+
+describe("saved (kaydedilen etkinlikler)", () => {
+  const savedDoc = (db, uid, eventId = EVENT) => doc(db, "users", uid, "saved", eventId);
+
+  it("kullanıcı var olan etkinliği kaydedebilir ve kaldırabilir", async () => {
+    await seedEvent();
+    const db = dbOf(ALICE);
+    await assertSucceeds(setDoc(savedDoc(db, ALICE), {eventId: EVENT, savedAt: serverTimestamp()}));
+    await assertSucceeds(getDoc(savedDoc(db, ALICE)));
+    await assertSucceeds(deleteDoc(savedDoc(db, ALICE)));
+  });
+
+  it("olmayan etkinlik kaydedilemez", async () => {
+    await assertFails(
+      setDoc(savedDoc(dbOf(ALICE), ALICE, "yok"), {eventId: "yok", savedAt: serverTimestamp()})
+    );
+  });
+
+  it("belge kimliği ile eventId aynı olmalı, fazladan alan olmamalı", async () => {
+    await seedEvent();
+    const db = dbOf(ALICE);
+    await assertFails(setDoc(savedDoc(db, ALICE), {eventId: "baska", savedAt: serverTimestamp()}));
+    await assertFails(
+      setDoc(savedDoc(db, ALICE), {eventId: EVENT, savedAt: serverTimestamp(), saveCount: 99})
+    );
+  });
+
+  it("başkasının listesine yazılamaz ve okunamaz", async () => {
+    await seedEvent();
+    await assertFails(
+      setDoc(savedDoc(dbOf(BOB), ALICE), {eventId: EVENT, savedAt: serverTimestamp()})
+    );
+    await assertSucceeds(
+      setDoc(savedDoc(dbOf(ALICE), ALICE), {eventId: EVENT, savedAt: serverTimestamp()})
+    );
+    await assertFails(getDoc(savedDoc(dbOf(BOB), ALICE)));
+  });
+
+  it("sahip bile saveCount değerini istemciden yazamaz", async () => {
+    await seedEvent();
+    await assertFails(updateDoc(doc(dbOf(OWNER), "events", EVENT), {saveCount: 10}));
   });
 });

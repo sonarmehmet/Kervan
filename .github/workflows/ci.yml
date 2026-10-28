@@ -1,0 +1,143 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  flutter:
+    name: Flutter analyze ve test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter --version
+      - run: flutter pub get
+      - name: flutter analyze
+        run: |
+          set +e
+          flutter analyze > analyze.txt 2>&1
+          status=$?
+          level=notice
+          if [ $status -ne 0 ]; then level=error; fi
+          msg=$(tail -c 30000 analyze.txt | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+          echo "::${level} title=analyze-output::${msg}"
+          exit $status
+      - name: flutter test
+        if: always()
+        run: |
+          set +e
+          flutter test > test.txt 2>&1
+          status=$?
+          level=notice
+          if [ $status -ne 0 ]; then level=error; fi
+          msg=$(grep -v "✅" test.txt | tail -c 3500 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+          echo "::${level} title=test-output::${msg}"
+          exit $status
+
+  functions:
+    name: Cloud Functions derlemesi
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  rules:
+    name: Firestore kural testleri
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rules_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: rules_test/package-lock.json
+      - run: npm ci
+      - run: npm test
+
+  functions-test:
+    name: Cloud Functions testleri
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+        working-directory: functions
+      - run: npm run build
+        working-directory: functions
+      - run: npm ci
+        working-directory: rules_test
+      - name: Testleri emulator ile çalıştır
+        run: |
+          set +e
+          rules_test/node_modules/.bin/firebase emulators:exec --only firestore --project demo-rota "node --test functions/test" > ftest.txt 2>&1
+          status=$?
+          level=notice
+          if [ $status -ne 0 ]; then level=error; fi
+          msg=$(tail -c 30000 ftest.txt | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+          echo "::${level} title=functions-test-output::${msg}"
+          exit $status
+
+  android:
+    name: Android debug derlemesi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Android klasörünü hazırla (betik + sahte google-services.json)
+        run: |
+          SHARE_HOST=rota-test.web.app bash scripts/setup_android.sh com.rota
+          cat > android/app/google-services.json <<'JSON'
+          {"project_info":{"project_number":"1","project_id":"demo-rota","storage_bucket":"demo-rota.appspot.com"},
+           "client":[{"client_info":{"mobilesdk_app_id":"1:1:android:1","android_client_info":{"package_name":"com.rota.rota"}},
+           "api_key":[{"current_key":"fake"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],
+           "configuration_version":"1"}
+          JSON
+          SHARE_HOST=rota-test.web.app bash scripts/setup_android.sh com.rota
+          { echo "--- gradle ---"; grep -n "minSdk\|google-services" android/app/build.gradle* android/settings.gradle*
+            grep -n "POST_NOTIFICATIONS\|android:label\|android:host\|deeplinking" android/app/src/main/AndroidManifest.xml; } > setup.txt
+      - run: flutter pub get
+      - name: flutter build apk
+        run: |
+          set +e
+          flutter build apk --debug > build.txt 2>&1
+          status=$?
+          level=notice
+          if [ $status -ne 0 ]; then level=error; fi
+          { cat setup.txt; tail -c 20000 build.txt; } > all.txt
+          msg=$(cat all.txt | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+          echo "::${level} title=build-output::${msg}"
+          exit $status
