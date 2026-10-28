@@ -91,7 +91,7 @@ abstract final class AppTheme {
       titleSmall: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
     );
 
-    final pill = const StadiumBorder();
+    const pill = StadiumBorder();
     final buttonLabel = headings.labelLarge?.copyWith(
       fontWeight: FontWeight.w800,
       letterSpacing: 0.6,

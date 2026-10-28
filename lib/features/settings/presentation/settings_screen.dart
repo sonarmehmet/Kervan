@@ -169,17 +169,23 @@ class _ThemeTile extends ConsumerWidget {
             return SimpleDialog(
               title: const Text('Görünüm'),
               children: [
-                for (final m in ThemeMode.values)
-                  RadioListTile<ThemeMode>(
-                    value: m,
-                    groupValue: current,
-                    title: Text(ThemeModeController.label(m)),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      ref.read(themeModeProvider.notifier).setMode(value);
-                      Navigator.of(dialogContext).pop();
-                    },
+                RadioGroup<ThemeMode>(
+                  groupValue: current,
+                  onChanged: (value) {
+                    if (value == null) return;
+                    ref.read(themeModeProvider.notifier).setMode(value);
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: Column(
+                    children: [
+                      for (final m in ThemeMode.values)
+                        RadioListTile<ThemeMode>(
+                          value: m,
+                          title: Text(ThemeModeController.label(m)),
+                        ),
+                    ],
                   ),
+                ),
               ],
             );
           },
