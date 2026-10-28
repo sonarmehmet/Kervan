@@ -35,6 +35,7 @@ class ProfileRepository {
       'city': input.city,
       'interests': input.interests,
       'createdAt': FieldValue.serverTimestamp(),
+      ..._accountFields(input),
     });
   }
 
@@ -46,7 +47,18 @@ class ProfileRepository {
       'city': input.city,
       'interests': input.interests,
       'updatedAt': FieldValue.serverTimestamp(),
+      ..._accountFields(input),
     });
+  }
+
+  /// Bireyselde işletme adı silinir (kurallar business dışında izin vermez).
+  Map<String, dynamic> _accountFields(ProfileInput input) {
+    final business = input.accountType == AccountType.business;
+    return <String, dynamic>{
+      'accountType': input.accountType.value,
+      'businessName':
+          business ? input.businessName.trim() : FieldValue.delete(),
+    };
   }
 }
 

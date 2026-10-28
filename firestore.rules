@@ -55,13 +55,17 @@ service cloud.firestore {
     // ---------- Kullanıcı profilleri ----------
 
     function validProfile(data) {
-      return data.keys().hasOnly(['displayName', 'bio', 'city', 'interests', 'createdAt', 'updatedAt'])
+      return data.keys().hasOnly(['displayName', 'bio', 'city', 'interests', 'createdAt', 'updatedAt',
+          'accountType', 'businessName'])
         && data.keys().hasAll(['displayName', 'bio', 'city', 'interests', 'createdAt'])
         && validString(data.displayName, 2, 40)
         && validString(data.bio, 0, 280)
         && validString(data.city, 0, 40)
         && data.interests is list
         && data.interests.size() <= 10
+        && (!('accountType' in data) || data.accountType in ['individual', 'business'])
+        && (!('businessName' in data) || validString(data.businessName, 2, 60))
+        && (!('businessName' in data) || ('accountType' in data && data.accountType == 'business'))
         && data.createdAt is timestamp;
     }
 

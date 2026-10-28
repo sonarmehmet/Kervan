@@ -32,6 +32,8 @@ class _ProfileFormState extends State<ProfileForm> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _bioController;
+  late final TextEditingController _businessController;
+  AccountType _type = AccountType.individual;
   String? _city;
   late final Set<String> _interests;
   bool _saving = false;
@@ -42,6 +44,9 @@ class _ProfileFormState extends State<ProfileForm> {
     final initial = widget.initial;
     _nameController = TextEditingController(text: initial?.displayName ?? '');
     _bioController = TextEditingController(text: initial?.bio ?? '');
+    _businessController =
+        TextEditingController(text: initial?.businessName ?? '');
+    _type = initial?.accountType ?? AccountType.individual;
     _city = (initial != null && TurkeyCities.isValid(initial.city))
         ? initial.city
         : null;
@@ -54,6 +59,7 @@ class _ProfileFormState extends State<ProfileForm> {
   void dispose() {
     _nameController.dispose();
     _bioController.dispose();
+    _businessController.dispose();
     super.dispose();
   }
 
@@ -67,6 +73,8 @@ class _ProfileFormState extends State<ProfileForm> {
           city: _city ?? '',
           bio: _bioController.text.trim(),
           interests: _interests.toList(),
+          accountType: _type,
+          businessName: _businessController.text.trim(),
         ),
       );
     } catch (error) {
@@ -121,6 +129,30 @@ class _ProfileFormState extends State<ProfileForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          SegmentedButton<AccountType>(
+            segments: [
+              for (final type in AccountType.values)
+                ButtonSegment<AccountType>(value: type, label: Text(type.label)),
+            ],
+            selected: {_type},
+            onSelectionChanged: (value) => setState(() => _type = value.first),
+          ),
+          const SizedBox(height: 16),
+          if (_type == AccountType.business) ...[
+            TextFormField(
+              controller: _businessController,
+              textCapitalization: TextCapitalization.words,
+              maxLength: 60,
+              decoration: AppTheme.inputDecoration(
+                label: 'İşletme / topluluk adı',
+                hint: 'Herkese görünür',
+              ),
+              validator: (value) => (value ?? '').trim().length < 2
+                  ? 'İşletme adı en az 2 karakter olmalı.'
+                  : null,
+            ),
+            const SizedBox(height: 8),
+          ],
           TextFormField(
             controller: _nameController,
             textInputAction: TextInputAction.next,

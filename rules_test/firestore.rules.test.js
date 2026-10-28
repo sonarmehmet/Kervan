@@ -113,6 +113,15 @@ beforeEach(async () => {
 });
 
 describe("users", () => {
+  it("kurumsal hesap: işletme adı yalnızca business türüyle", async () => {
+    await assertSucceeds(setDoc(doc(dbOf(ALICE), "users", ALICE),
+      {...validProfile(), accountType: "business", businessName: "Kahve Atölyesi"}));
+    await assertFails(setDoc(doc(dbOf(BOB), "users", BOB),
+      {...validProfile(), accountType: "individual", businessName: "Kahve Atölyesi"}));
+    await assertFails(setDoc(doc(dbOf(BOB), "users", BOB),
+      {...validProfile(), accountType: "admin"}));
+  });
+
   it("kullanıcı kendi profilini oluşturabilir", async () => {
     await assertSucceeds(setDoc(doc(dbOf(ALICE), "users", ALICE), validProfile()));
   });
