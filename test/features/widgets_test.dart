@@ -185,6 +185,7 @@ void main() {
     testWidgets('onay kutuları işaretlenmeden hesap açılmaz', (tester) async {
       final auth = await pumpRegister(tester);
       await fill(tester);
+      await tester.ensureVisible(find.text('Hesap oluştur'));
       await tester.tap(find.text('Hesap oluştur'));
       await tester.pump();
       expect(find.textContaining('18 yaşını doldurduğunu onaylamalı'), findsOneWidget);
@@ -196,6 +197,7 @@ void main() {
       await fill(tester, password: '12345678', confirm: 'baska');
       await tester.tap(find.byType(CheckboxListTile).at(0));
       await tester.tap(find.byType(CheckboxListTile).at(1));
+      await tester.ensureVisible(find.text('Hesap oluştur'));
       await tester.tap(find.text('Hesap oluştur'));
       await tester.pump();
       expect(find.text('Şifre en az bir harf ve bir rakam içermeli.'), findsOneWidget);
@@ -208,6 +210,7 @@ void main() {
       await fill(tester);
       await tester.tap(find.byType(CheckboxListTile).at(0));
       await tester.tap(find.byType(CheckboxListTile).at(1));
+      await tester.ensureVisible(find.text('Hesap oluştur'));
       await tester.tap(find.text('Hesap oluştur'));
       await tester.pump();
       expect(auth.registerCalls, ['a@b.com|abc12345']);
