@@ -35,7 +35,7 @@ jobs:
           status=$?
           level=notice
           if [ $status -ne 0 ]; then level=error; fi
-          msg=$(tail -c 30000 test.txt | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+          msg=$(grep -v "✅" test.txt | tail -c 3500 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
           echo "::${level} title=test-output::${msg}"
           exit $status
 
