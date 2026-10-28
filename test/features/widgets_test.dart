@@ -195,7 +195,9 @@ void main() {
     testWidgets('zayıf şifre ve uyuşmayan tekrar reddedilir', (tester) async {
       final auth = await pumpRegister(tester);
       await fill(tester, password: '12345678', confirm: 'baska');
+      await tester.ensureVisible(find.byType(CheckboxListTile).at(0));
       await tester.tap(find.byType(CheckboxListTile).at(0));
+      await tester.ensureVisible(find.byType(CheckboxListTile).at(1));
       await tester.tap(find.byType(CheckboxListTile).at(1));
       await tester.ensureVisible(find.text('Hesap oluştur'));
       await tester.tap(find.text('Hesap oluştur'));
@@ -208,7 +210,9 @@ void main() {
     testWidgets('geçerli form ve onaylarla register çağrılır', (tester) async {
       final auth = await pumpRegister(tester);
       await fill(tester);
+      await tester.ensureVisible(find.byType(CheckboxListTile).at(0));
       await tester.tap(find.byType(CheckboxListTile).at(0));
+      await tester.ensureVisible(find.byType(CheckboxListTile).at(1));
       await tester.tap(find.byType(CheckboxListTile).at(1));
       await tester.ensureVisible(find.text('Hesap oluştur'));
       await tester.tap(find.text('Hesap oluştur'));
