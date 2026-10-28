@@ -9,6 +9,7 @@ import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../event_discovery/data/event_query_repository.dart';
 import '../../event_discovery/presentation/event_card.dart';
+import '../../saved/data/saved_repository.dart';
 import '../data/event.dart';
 
 /// Etkinliklerim sekmesi: oluşturduklarım ve katıldıklarım.
@@ -18,7 +19,7 @@ class MyEventsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Etkinliklerim'),
@@ -26,6 +27,7 @@ class MyEventsScreen extends StatelessWidget {
             tabs: [
               Tab(text: 'Oluşturduklarım'),
               Tab(text: 'Katıldıklarım'),
+              Tab(text: 'Kaydettiklerim'),
             ],
           ),
         ),
@@ -41,6 +43,11 @@ class MyEventsScreen extends StatelessWidget {
               emptyTitle: 'Henüz katıldığın etkinlik yok',
               emptyMessage: 'Katılım talebin onaylanınca etkinlik burada görünür.',
             ),
+            _EventList(
+              source: _Source.saved,
+              emptyTitle: 'Kaydettiğin etkinlik yok',
+              emptyMessage: 'Bir etkinliğin üstündeki yer imi simgesine dokunarak kaydedebilirsin.',
+            ),
           ],
         ),
       ),
@@ -48,7 +55,7 @@ class MyEventsScreen extends StatelessWidget {
   }
 }
 
-enum _Source { owned, joined }
+enum _Source { owned, joined, saved }
 
 class _EventList extends ConsumerWidget {
   const _EventList({
@@ -63,9 +70,11 @@ class _EventList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final provider = source == _Source.owned
-        ? ownedEventsProvider
-        : joinedEventsProvider;
+    final provider = switch (source) {
+      _Source.owned => ownedEventsProvider,
+      _Source.joined => joinedEventsProvider,
+      _Source.saved => savedEventsProvider,
+    };
     final async = ref.watch(provider);
     final events = async.valueOrNull;
 

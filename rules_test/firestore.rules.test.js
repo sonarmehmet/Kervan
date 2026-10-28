@@ -829,3 +829,46 @@ describe("etkinlik ek alanları (fotoğraf, süre, maliyet, koşullar)", () => {
     await assertSucceeds(updateDoc(doc(dbOf(OWNER), "events", EVENT), {imageUrl: deleteField()}));
   });
 });
+
+describe("saved (kaydedilen etkinlikler)", () => {
+  const savedDoc = (db, uid, eventId = EVENT) => doc(db, "users", uid, "saved", eventId);
+
+  it("kullanıcı var olan etkinliği kaydedebilir ve kaldırabilir", async () => {
+    await seedEvent();
+    const db = dbOf(ALICE);
+    await assertSucceeds(setDoc(savedDoc(db, ALICE), {eventId: EVENT, savedAt: serverTimestamp()}));
+    await assertSucceeds(getDoc(savedDoc(db, ALICE)));
+    await assertSucceeds(deleteDoc(savedDoc(db, ALICE)));
+  });
+
+  it("olmayan etkinlik kaydedilemez", async () => {
+    await assertFails(
+      setDoc(savedDoc(dbOf(ALICE), ALICE, "yok"), {eventId: "yok", savedAt: serverTimestamp()})
+    );
+  });
+
+  it("belge kimliği ile eventId aynı olmalı, fazladan alan olmamalı", async () => {
+    await seedEvent();
+    const db = dbOf(ALICE);
+    await assertFails(setDoc(savedDoc(db, ALICE), {eventId: "baska", savedAt: serverTimestamp()}));
+    await assertFails(
+      setDoc(savedDoc(db, ALICE), {eventId: EVENT, savedAt: serverTimestamp(), saveCount: 99})
+    );
+  });
+
+  it("başkasının listesine yazılamaz ve okunamaz", async () => {
+    await seedEvent();
+    await assertFails(
+      setDoc(savedDoc(dbOf(BOB), ALICE), {eventId: EVENT, savedAt: serverTimestamp()})
+    );
+    await assertSucceeds(
+      setDoc(savedDoc(dbOf(ALICE), ALICE), {eventId: EVENT, savedAt: serverTimestamp()})
+    );
+    await assertFails(getDoc(savedDoc(dbOf(BOB), ALICE)));
+  });
+
+  it("sahip bile saveCount değerini istemciden yazamaz", async () => {
+    await seedEvent();
+    await assertFails(updateDoc(doc(dbOf(OWNER), "events", EVENT), {saveCount: 10}));
+  });
+});

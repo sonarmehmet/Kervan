@@ -37,6 +37,7 @@ abstract final class RoutePaths {
   static String groupDetails(String groupId) => '/groups/$groupId';
   static String editGroup(String groupId) => '/groups/$groupId/edit';
   static const String following = '/settings/following';
+  static const String saved = '/saved';
 
   /// Giriş yapmadan erişilebilen yollar.
   static const Set<String> publicPaths = <String>{

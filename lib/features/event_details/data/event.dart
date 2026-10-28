@@ -40,6 +40,7 @@ class Event {
     this.durationMinutes,
     this.costNote = '',
     this.terms = '',
+    this.saveCount = 0,
   });
 
   final String id;
@@ -76,6 +77,9 @@ class Event {
   /// Düzenleyenin katılım ve iptal koşulları.
   final String terms;
 
+  /// Kaç kişi kaydetti (sunucu hesaplar).
+  final int saveCount;
+
   factory Event.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? const <String, dynamic>{};
     return Event(
@@ -99,6 +103,7 @@ class Event {
       durationMinutes: (data['durationMinutes'] as num?)?.toInt(),
       costNote: (data['costNote'] as String?) ?? '',
       terms: (data['terms'] as String?) ?? '',
+      saveCount: (data['saveCount'] as num?)?.toInt() ?? 0,
     );
   }
 

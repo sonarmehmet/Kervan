@@ -79,6 +79,18 @@ service cloud.firestore {
         allow delete: if isSelf(uid);
       }
 
+      // Kaydettiğim etkinlikler (yalnızca kendim okur/yazarım). saveCount'u sunucu hesaplar.
+      match /saved/{eventId} {
+        allow read: if isSelf(uid);
+        allow create: if isSelf(uid)
+          && request.resource.data.keys().hasOnly(['eventId', 'savedAt'])
+          && request.resource.data.eventId == eventId
+          && request.resource.data.savedAt == request.time
+          && exists(/databases/$(database)/documents/events/$(eventId));
+        allow update: if false;
+        allow delete: if isSelf(uid);
+      }
+
       // E-posta gibi özel veriler bu belgede tutulmaz; profil alanları herkese açıktır.
       allow read: if isSignedIn();
       allow create: if isSelf(uid) && validProfile(request.resource.data);

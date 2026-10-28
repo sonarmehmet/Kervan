@@ -12,4 +12,5 @@ export {submitRating} from "./ratings/submit_rating";
 export {createGroup, joinGroup, leaveGroup} from "./groups/groups";
 export {onEventUpdated} from "./events/on_event_updated";
 export {onEventCreated} from "./events/on_event_created";
+export {onSavedWritten} from "./events/on_saved_written";
 export {sendEventReminders} from "./reminders/send_reminders";

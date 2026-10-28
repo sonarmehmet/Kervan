@@ -291,3 +291,24 @@ test("seride yalnızca ilk etkinlik için bildirim gider", async () => {
   assert.equal((await notesOf(f, first)).length, 1);
   assert.equal((await notesOf(f, second)).length, 0);
 });
+
+test("recountSaves: kayıt sayısı tüm kullanıcılardan sayılır ve etkinlikte güncellenir", async () => {
+  const {recountSaves} = require("../lib/events/on_saved_written");
+  const owner = `o_${rid()}`;
+  const eventId = await seedEvent({owner});
+  const other = await seedEvent({owner});
+  for (const uid of ["u1", "u2", "u3"]) {
+    await db.doc(`users/${uid}_${eventId}/saved/${eventId}`).set({eventId, savedAt: Timestamp.now()});
+  }
+  await db.doc(`users/ux_${other}/saved/${other}`).set({eventId: other, savedAt: Timestamp.now()});
+
+  assert.equal(await recountSaves(eventId), 3);
+  assert.equal((await db.doc(`events/${eventId}`).get()).get("saveCount"), 3);
+  assert.equal(await recountSaves(other), 1);
+
+  await db.doc(`users/u1_${eventId}/saved/${eventId}`).delete();
+  assert.equal(await recountSaves(eventId), 2);
+  assert.equal((await db.doc(`events/${eventId}`).get()).get("saveCount"), 2);
+
+  assert.equal(await recountSaves("yok_etkinlik"), 0);
+});

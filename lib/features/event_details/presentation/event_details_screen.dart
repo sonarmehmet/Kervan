@@ -21,6 +21,7 @@ import '../../moderation/presentation/report_sheet.dart';
 import '../../participation/data/participation_repository.dart';
 import '../../participation/presentation/participation_section.dart';
 import '../../following/presentation/follow_button.dart';
+import '../../saved/presentation/save_button.dart';
 import '../../ratings/presentation/event_rating_section.dart';
 import '../../ratings/presentation/rating_widgets.dart';
 import '../data/event.dart';
@@ -57,7 +58,10 @@ class EventDetailsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Etkinlik'),
-        actions: [if (event != null) _EventMenu(event: event)],
+        actions: [
+          if (event != null) SaveButton(eventId: event.id),
+          if (event != null) _EventMenu(event: event),
+        ],
       ),
       body: body,
     );
