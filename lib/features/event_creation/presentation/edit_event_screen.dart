@@ -22,7 +22,15 @@ class EditEventScreen extends ConsumerWidget {
     WidgetRef ref,
     EventInput input,
   ) async {
-    await ref.read(eventRepositoryProvider).updateEvent(eventId, input);
+    final uid = ref.read(authStateProvider).valueOrNull?.uid;
+    if (uid == null) return;
+    final previous = ref.read(eventProvider(eventId)).valueOrNull?.imageUrl;
+    await ref.read(eventRepositoryProvider).updateEvent(
+          eventId,
+          input,
+          ownerId: uid,
+          previousImageUrl: previous,
+        );
     ref.invalidate(eventAddressProvider(eventId));
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

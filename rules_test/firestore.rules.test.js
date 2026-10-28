@@ -777,3 +777,55 @@ describe("takip, bekleme listesi, değerlendirme", () => {
     await assertFails(getDoc(doc(anonDb(), "userStats", OWNER)));
   });
 });
+
+describe("etkinlik ek alanları (fotoğraf, süre, maliyet, koşullar)", () => {
+  const goodUrl =
+    "https://firebasestorage.googleapis.com/v0/b/demo-rota.appspot.com/o/events%2Fowner1%2Fa.jpg?alt=media&token=abc";
+
+  it("geçerli ek alanlarla etkinlik oluşturulabilir", async () => {
+    await assertSucceeds(
+      setDoc(doc(dbOf(OWNER), "events", "x1"), {
+        ...validEvent(),
+        imageUrl: goodUrl,
+        durationMinutes: 120,
+        costNote: "Hesap katılımcılara aittir",
+        terms: "Gelemeyeceksen haber ver.",
+      })
+    );
+  });
+
+  it("Storage dışı bir görsel bağlantısı reddedilir", async () => {
+    await assertFails(
+      setDoc(doc(dbOf(OWNER), "events", "x2"), {...validEvent(), imageUrl: "https://example.com/a.jpg"})
+    );
+    await assertFails(
+      setDoc(doc(dbOf(OWNER), "events", "x3"), {...validEvent(), imageUrl: "javascript:alert(1)"})
+    );
+  });
+
+  it("süre 15-720 dakika ve tam sayı olmalı", async () => {
+    await assertFails(setDoc(doc(dbOf(OWNER), "events", "x4"), {...validEvent(), durationMinutes: 5}));
+    await assertFails(setDoc(doc(dbOf(OWNER), "events", "x5"), {...validEvent(), durationMinutes: 721}));
+    await assertFails(setDoc(doc(dbOf(OWNER), "events", "x6"), {...validEvent(), durationMinutes: "120"}));
+  });
+
+  it("maliyet notu 120, koşullar 300 karakteri aşamaz", async () => {
+    await assertFails(setDoc(doc(dbOf(OWNER), "events", "x7"), {...validEvent(), costNote: "a".repeat(121)}));
+    await assertFails(setDoc(doc(dbOf(OWNER), "events", "x8"), {...validEvent(), terms: "a".repeat(301)}));
+  });
+
+  it("bilinmeyen alan eklenemez", async () => {
+    await assertFails(setDoc(doc(dbOf(OWNER), "events", "x9"), {...validEvent(), price: 10}));
+  });
+
+  it("sahip ek alanları günceller ve fotoğrafı kaldırabilir, başkası yapamaz", async () => {
+    await seedEvent({imageUrl: goodUrl, durationMinutes: 60});
+    await assertSucceeds(
+      updateDoc(doc(dbOf(OWNER), "events", EVENT), {durationMinutes: 90, costNote: "Ücretsiz"})
+    );
+    await assertFails(updateDoc(doc(dbOf(BOB), "events", EVENT), {costNote: "Hacked"}));
+    await assertFails(updateDoc(doc(dbOf(OWNER), "events", EVENT), {imageUrl: "https://example.com/x.png"}));
+    const {deleteField} = require("firebase/firestore");
+    await assertSucceeds(updateDoc(doc(dbOf(OWNER), "events", EVENT), {imageUrl: deleteField()}));
+  });
+});

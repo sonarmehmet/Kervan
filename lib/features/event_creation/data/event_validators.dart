@@ -8,6 +8,26 @@ abstract final class EventLimits {
   static const int addressMax = 200;
   static const int capacityMin = 1;
   static const int capacityMax = 100;
+  static const int costNoteMax = 120;
+  static const int termsMax = 300;
+
+  /// Fotoğraf: istemci tarafında küçültülür; Storage kuralları 3 MB üstünü reddeder.
+  static const int imageMaxBytes = 3 * 1024 * 1024;
+
+  /// Seçilebilir süreler (dakika).
+  static const List<int> durations = <int>[30, 60, 90, 120, 180, 240, 360, 480];
+  static const int durationMin = 15;
+  static const int durationMax = 720;
+}
+
+/// "2 saat", "1,5 saat", "45 dk" gibi süre metni.
+String durationLabel(int minutes) {
+  if (minutes < 60) return '$minutes dk';
+  final hours = minutes ~/ 60;
+  final rest = minutes % 60;
+  if (rest == 0) return '$hours saat';
+  if (rest == 30) return '$hours,5 saat';
+  return '$hours sa $rest dk';
 }
 
 /// Etkinlik formu doğrulayıcıları. Null dönerse alan geçerlidir.
@@ -27,6 +47,22 @@ abstract final class EventValidators {
     final text = value?.trim() ?? '';
     if (text.length > EventLimits.descriptionMax) {
       return 'Açıklama en fazla ${EventLimits.descriptionMax} karakter olabilir.';
+    }
+    return null;
+  }
+
+  static String? costNote(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.length > EventLimits.costNoteMax) {
+      return 'Maliyet notu en fazla ${EventLimits.costNoteMax} karakter olabilir.';
+    }
+    return null;
+  }
+
+  static String? terms(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.length > EventLimits.termsMax) {
+      return 'Koşullar en fazla ${EventLimits.termsMax} karakter olabilir.';
     }
     return null;
   }

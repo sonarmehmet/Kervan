@@ -105,11 +105,27 @@ service cloud.firestore {
 
     // ---------- Etkinlikler ----------
 
+    // Fotoğraf yalnızca Firebase Storage indirme bağlantısı olabilir.
+    function validImageUrl(url) {
+      return validString(url, 20, 700)
+        && url.matches('^https://firebasestorage\\.googleapis\\.com/v0/b/.+');
+    }
+
+    // Etkinliğin isteğe bağlı alanları (oluşturma ve düzenleme için ortak).
+    function validEventExtras(data) {
+      return (!('imageUrl' in data) || validImageUrl(data.imageUrl))
+        && (!('durationMinutes' in data) || (data.durationMinutes is int
+            && data.durationMinutes >= 15 && data.durationMinutes <= 720))
+        && (!('costNote' in data) || validString(data.costNote, 1, 120))
+        && (!('terms' in data) || validString(data.terms, 1, 300));
+    }
+
     function validNewEvent(data) {
       return data.keys().hasOnly([
           'ownerId', 'ownerName', 'title', 'description', 'category', 'city', 'district',
           'startsAt', 'capacity', 'acceptedCount', 'status', 'createdAt', 'updatedAt',
-          'seriesId', 'seriesIndex', 'groupId', 'groupName'
+          'seriesId', 'seriesIndex', 'groupId', 'groupName',
+          'imageUrl', 'durationMinutes', 'costNote', 'terms'
         ])
         && data.keys().hasAll([
           'ownerId', 'ownerName', 'title', 'description', 'category', 'city', 'district',
@@ -130,6 +146,7 @@ service cloud.firestore {
         && data.acceptedCount == 0
         && data.status == 'active'
         && data.createdAt == request.time
+        && validEventExtras(data)
         && (!('seriesId' in data) || validString(data.seriesId, 1, 40))
         && (!('seriesIndex' in data) || (data.seriesIndex is int && data.seriesIndex >= 0 && data.seriesIndex < 12))
         && (!('groupId' in data) || (
@@ -144,8 +161,10 @@ service cloud.firestore {
     function validEventUpdate(old, data) {
       return data.diff(old).affectedKeys().hasOnly([
           'title', 'description', 'category', 'city', 'district',
-          'startsAt', 'capacity', 'status', 'updatedAt'
+          'startsAt', 'capacity', 'status', 'updatedAt',
+          'imageUrl', 'durationMinutes', 'costNote', 'terms'
         ])
+        && validEventExtras(data)
         && validString(data.title, 3, 80)
         && validString(data.description, 0, 1000)
         && validString(data.category, 1, 30)

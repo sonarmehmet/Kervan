@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
@@ -11,10 +14,11 @@ import 'recurrence.dart';
 
 /// `events/{eventId}` ve `events/{eventId}/private/location` işlemleri.
 class EventRepository {
-  EventRepository(this._firestore, this._functions);
+  EventRepository(this._firestore, this._functions, this._storage);
 
   final FirebaseFirestore _firestore;
   final FirebaseFunctions _functions;
+  final FirebaseStorage _storage;
 
   CollectionReference<Map<String, dynamic>> get _events =>
       _firestore.collection(FirestorePaths.events);
@@ -26,6 +30,34 @@ class EventRepository {
         );
   }
 
+  /// Fotoğrafı `events/{ownerId}/{rastgele}.jpg` yoluna yükler ve indirme bağlantısını döner.
+  /// Kurallar: yalnızca sahibi kendi klasörüne, en fazla 3 MB, görsel türünde yazabilir.
+  Future<String> _uploadImage(String ownerId, Uint8List bytes) async {
+    final name = _events.doc().id;
+    final ref = _storage.ref('events/$ownerId/$name.jpg');
+    await ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+    return ref.getDownloadURL();
+  }
+
+  /// Eski fotoğrafı silmeyi dener; başarısız olursa sessizce geçer (yetim dosya zararsızdır).
+  Future<void> _deleteImageQuietly(String? url) async {
+    if (url == null || url.isEmpty) return;
+    try {
+      await _storage.refFromURL(url).delete();
+    } catch (_) {
+      // Dosya zaten silinmiş veya erişilemiyor olabilir.
+    }
+  }
+
+  Map<String, dynamic> _extraFields(EventInput input, String? imageUrl) {
+    return <String, dynamic>{
+      if (input.durationMinutes != null) 'durationMinutes': input.durationMinutes,
+      if (input.costNote.trim().isNotEmpty) 'costNote': input.costNote.trim(),
+      if (input.terms.trim().isNotEmpty) 'terms': input.terms.trim(),
+      if (imageUrl != null) 'imageUrl': imageUrl,
+    };
+  }
+
   /// Etkinlik(ler) ve tam adres(ler) TEK batch ile yazılır (kurallar buna göre yazıldı).
   /// Tekrar kuralı varsa seri oluşur (ortak `seriesId`, sıra `seriesIndex`); ilk etkinliğin
   /// kimliğini döner.
@@ -34,6 +66,8 @@ class EventRepository {
     required String ownerName,
     required EventInput input,
   }) async {
+    final imageUrl =
+        input.newImage == null ? null : await _uploadImage(ownerId, input.newImage!);
     final dates = occurrenceDates(input.startsAt, input.recurrence, input.occurrences);
     final isSeries = dates.length > 1;
     final batch = _firestore.batch();
@@ -56,6 +90,7 @@ class EventRepository {
         'acceptedCount': 0,
         'status': 'active',
         'createdAt': FieldValue.serverTimestamp(),
+        ..._extraFields(input, imageUrl),
         if (isSeries) 'seriesId': seriesId,
         if (isSeries) 'seriesIndex': i,
         if (input.groupId != null && input.groupName != null) ...<String, dynamic>{
@@ -74,7 +109,15 @@ class EventRepository {
 
   /// `acceptedCount`, `ownerId`, `status` ve `createdAt` gönderilmez:
   /// kurallar bunların istemciden değiştirilmesini yasaklar.
-  Future<void> updateEvent(String eventId, EventInput input) async {
+  Future<void> updateEvent(
+    String eventId,
+    EventInput input, {
+    required String ownerId,
+    String? previousImageUrl,
+  }) async {
+    final imageUrl = input.newImage != null
+        ? await _uploadImage(ownerId, input.newImage!)
+        : input.imageUrl;
     final batch = _firestore.batch();
     batch.update(_events.doc(eventId), <String, dynamic>{
       'title': input.title.trim(),
@@ -85,12 +128,19 @@ class EventRepository {
       'startsAt': Timestamp.fromDate(input.startsAt),
       'capacity': input.capacity,
       'updatedAt': FieldValue.serverTimestamp(),
+      'durationMinutes': input.durationMinutes ?? FieldValue.delete(),
+      'costNote': input.costNote.trim().isEmpty ? FieldValue.delete() : input.costNote.trim(),
+      'terms': input.terms.trim().isEmpty ? FieldValue.delete() : input.terms.trim(),
+      'imageUrl': imageUrl ?? FieldValue.delete(),
     });
     batch.set(
       _firestore.doc(FirestorePaths.eventLocation(eventId)),
       <String, dynamic>{'address': input.address.trim()},
     );
     await batch.commit();
+    if (previousImageUrl != null && previousImageUrl != imageUrl) {
+      await _deleteImageQuietly(previousImageUrl);
+    }
   }
 
   /// İptal sunucuda yapılır: katılımcılara bildirim gider.
@@ -112,6 +162,7 @@ final eventRepositoryProvider = Provider<EventRepository>(
   (ref) => EventRepository(
     ref.watch(firestoreProvider),
     ref.watch(functionsProvider),
+    ref.watch(storageProvider),
   ),
 );
 

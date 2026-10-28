@@ -13,6 +13,7 @@ import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../authentication/data/auth_repository.dart';
 import '../../event_creation/data/event_repository.dart';
+import '../../event_creation/data/event_validators.dart';
 import '../../location/presentation/event_location_card.dart';
 import '../../moderation/data/report_repository.dart';
 import '../../moderation/presentation/block_user_dialog.dart';
@@ -82,6 +83,20 @@ class _EventBody extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (event.hasImage) ...[
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(22),
+              child: Image.network(
+                event.imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
         Wrap(
           spacing: 8,
           children: [
@@ -112,8 +127,12 @@ class _EventBody extends ConsumerWidget {
         const SizedBox(height: 16),
         _DetailRow(
           icon: Icons.schedule,
-          text: DateFormatters.eventDateTime(event.startsAt),
+          text: event.durationMinutes == null
+              ? DateFormatters.eventDateTime(event.startsAt)
+              : '${DateFormatters.eventDateTime(event.startsAt)} · ${durationLabel(event.durationMinutes!)}',
         ),
+        if (event.costNote.isNotEmpty)
+          _DetailRow(icon: Icons.payments_outlined, text: event.costNote),
         _DetailRow(
           icon: Icons.person_outline,
           text: 'Düzenleyen: ${event.ownerName}',
@@ -149,6 +168,26 @@ class _EventBody extends ConsumerWidget {
           Text('Açıklama', style: theme.textTheme.titleSmall),
           const SizedBox(height: 8),
           Text(event.description),
+        ],
+        if (event.terms.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          Text('Katılım koşulları', style: theme.textTheme.titleSmall),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline, size: 20),
+                const SizedBox(width: 12),
+                Expanded(child: Text(event.terms)),
+              ],
+            ),
+          ),
         ],
         const SizedBox(height: 24),
         EventLocationCard(

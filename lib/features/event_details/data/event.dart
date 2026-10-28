@@ -36,6 +36,10 @@ class Event {
     this.seriesId,
     this.groupId,
     this.groupName,
+    this.imageUrl,
+    this.durationMinutes,
+    this.costNote = '',
+    this.terms = '',
   });
 
   final String id;
@@ -60,6 +64,18 @@ class Event {
   final String? groupId;
   final String? groupName;
 
+  /// Etkinlik fotoğrafı (Firebase Storage indirme bağlantısı); yoksa `null`.
+  final String? imageUrl;
+
+  /// Tahmini süre (dakika); belirtilmediyse `null`.
+  final int? durationMinutes;
+
+  /// "Hesap katılımcılara aittir", "Ücretsiz" gibi kısa not.
+  final String costNote;
+
+  /// Düzenleyenin katılım ve iptal koşulları.
+  final String terms;
+
   factory Event.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? const <String, dynamic>{};
     return Event(
@@ -79,8 +95,18 @@ class Event {
       seriesId: data['seriesId'] as String?,
       groupId: data['groupId'] as String?,
       groupName: data['groupName'] as String?,
+      imageUrl: data['imageUrl'] as String?,
+      durationMinutes: (data['durationMinutes'] as num?)?.toInt(),
+      costNote: (data['costNote'] as String?) ?? '',
+      terms: (data['terms'] as String?) ?? '',
     );
   }
+
+  DateTime? get endsAt => durationMinutes == null
+      ? null
+      : startsAt.add(Duration(minutes: durationMinutes!));
+
+  bool get hasImage => imageUrl != null && imageUrl!.isNotEmpty;
 
   bool get isCancelled => status == EventStatus.cancelled;
   bool get isFull => acceptedCount >= capacity;

@@ -1,0 +1,25 @@
+rules_version = '2';
+
+// Rota - Firebase Storage kuralları.
+// Etkinlik fotoğrafları: events/{sahipUid}/{dosya}. Yalnızca e-postası doğrulanmış sahip kendi
+// klasörüne, görsel türünde ve en fazla 3 MB yazabilir. Başka her yol kapalıdır.
+service firebase.storage {
+  match /b/{bucket}/o {
+    function verified() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    match /events/{ownerId}/{fileName} {
+      allow read: if verified();
+      allow create, update: if verified()
+        && request.auth.uid == ownerId
+        && request.resource.size < 3 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+      allow delete: if verified() && request.auth.uid == ownerId;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

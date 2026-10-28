@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'recurrence.dart';
 
 /// Etkinlik formundan gelen değerler (oluşturma ve düzenleme için ortak).
@@ -15,6 +17,11 @@ class EventInput {
     this.occurrences = 1,
     this.groupId,
     this.groupName,
+    this.durationMinutes,
+    this.costNote = '',
+    this.terms = '',
+    this.imageUrl,
+    this.newImage,
   });
 
   final String title;
@@ -35,4 +42,14 @@ class EventInput {
   /// Yalnızca oluşturmada: etkinliğin ait olduğu grup (grup sahibi seçebilir).
   final String? groupId;
   final String? groupName;
+
+  final int? durationMinutes;
+  final String costNote;
+  final String terms;
+
+  /// Korunacak mevcut fotoğraf bağlantısı (düzenlemede). `null` ve [newImage] yoksa fotoğraf kalkar.
+  final String? imageUrl;
+
+  /// Yeni seçilen fotoğraf (JPEG baytları). Varsa yüklenir ve [imageUrl] yerine geçer.
+  final Uint8List? newImage;
 }

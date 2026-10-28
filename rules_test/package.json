@@ -2,7 +2,7 @@
   "name": "rota-rules-test",
   "private": true,
   "scripts": {
-    "test": "cd .. && firebase emulators:exec --only firestore --project demo-rota \"node --test rules_test\""
+    "test": "cd .. && firebase emulators:exec --only firestore,storage --project demo-rota \"node --test rules_test\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

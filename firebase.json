@@ -34,6 +34,9 @@
     "singleProjectMode": true,
     "hosting": {
       "port": 5000
+    },
+    "storage": {
+      "port": 9199
     }
   },
   "hosting": {
@@ -59,5 +62,8 @@
         ]
       }
     ]
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }

@@ -28,6 +28,10 @@ dependencies:
   url_launcher: ^6.3.1
   share_plus: ^10.1.4
 
+  # Etkinlik fotoğrafı
+  firebase_storage: ^12.4.0
+  image_picker: ^1.1.2
+
   # Yazı tipi (Nunito) ve cihazda tema tercihi
   google_fonts: ^6.2.1
   shared_preferences: ^2.3.3
