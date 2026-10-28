@@ -95,6 +95,14 @@ Dolu etkinlikte bekleme listesi. Alanlar: `userId`, `userName`, `createdAt`. Yal
 (yalnızca grup sahibi bağlayabilir). `reminder24hSent`, `reminder1hSent`: yalnızca sunucu yazar (hatırlatma bayrakları).
 Bunlar oluşturulduktan sonra istemciden değiştirilemez.
 
+## 2e. Fotoğraf, kaydedilenler, hesap türü (v2 arayüz)
+
+- **Kapak fotoğrafı:** Firebase Storage `events/{uid}/{eventId}.jpg` (JPEG, en çok 3 MB; yalnızca sahibi yazar). İndirme bağlantısı `events/{id}.imageUrl` alanında tutulur ve kural gereği `firebasestorage.googleapis.com` adresi olmalıdır. Kurallar: `storage.rules`.
+- **Etkinlik alanları:** `imageUrl`, `durationMinutes` (15-720), `costNote` (≤120), `terms` (≤300) isteğe bağlıdır; `saveCount` yalnızca sunucu tarafından yazılır.
+- **`users/{uid}/saved/{eventId}`:** `{eventId, savedAt}`; yalnızca kendisi okur/yazar. `onSavedWritten` fonksiyonu `events/{id}.saveCount` değerini `collectionGroup('saved')` sayımıyla yeniden hesaplar (tekrar çalışsa da aynı sonucu verir).
+- **`users/{uid}.accountType`** (`individual` | `business`) ve **`businessName`** (2-60, yalnızca `business` iken) herkese görünür. Vergi bilgisi ve "doğrulanmış" rozeti henüz yoktur.
+- **Yerel (cihaz) ayarları:** tema (`theme_mode`) ve karşılama görüldü (`onboarding_seen`) `shared_preferences` ile saklanır, Firestore'a yazılmaz.
+
 ## 2b. `groups/{groupId}` ve `groups/{groupId}/members/{userId}`
 
 Grup: `name` (3-50), `description` (0-500), `category`, `city`, `ownerId`, `ownerName`, `memberCount`, `status`

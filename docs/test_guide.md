@@ -74,3 +74,11 @@ Bir şey çalışmazsa: ekran görüntüsü + `flutter run` konsol çıktısı g
 - Profil fotoğrafı yok. Google ile giriş yok (yalnızca e-posta/şifre). Sohbet mesajları için push yok.
 - iOS yapılandırılmadı.
 - Gizlilik metni taslak; boş alanları doldurup avukata kontrol ettir.
+
+
+## Yeni arayüz (v2) için ek kontroller
+
+1. **Storage'ı aç:** Firebase konsolu > Storage > Başla. Sonra `firebase deploy --only storage,firestore`.
+2. **Fonksiyonlar:** Blaze planda `firebase deploy --only functions` (kaydedilen sayacı `onSavedWritten` ile çalışır).
+3. **Elle dene:** ilk açılışta 4 karşılama sayfası; ana sayfada kategori/zaman çipleri; etkinlik oluştururken kapak fotoğrafı, süre, ücret notu, koşullar; detayda alttaki sabit "katıl" düğmesi; ortadaki "+" ile etkinlik oluştur; Ayarlar > Tema (açık/koyu/sistem); kalp ile kaydet ve Etkinliklerim > Kaydettiklerim; profilde Bireysel/Kurumsal seçimi.
+4. **Henüz yok:** Google ile giriş (SHA-1 ve Firebase'de Google sağlayıcısı gerekir), kurumsal vergi doğrulaması, öne çıkarma/reklam.
