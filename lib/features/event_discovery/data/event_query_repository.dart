@@ -5,6 +5,7 @@ import '../../../core/constants/firestore_paths.dart';
 import '../../../core/services/firebase_providers.dart';
 import '../../authentication/data/auth_repository.dart';
 import '../../event_details/data/event.dart';
+import '../../../core/constants/event_categories.dart';
 import 'event_filter.dart';
 
 /// Etkinlik listeleme sorguları. Gereken indexler firestore.indexes.json içindedir.
@@ -22,17 +23,17 @@ class EventQueryRepository {
     if (filter.city != null) {
       query = query.where('city', isEqualTo: filter.city);
     }
-    if (filter.categoryId != null) {
+    // Grup süzgeci istemcide uygulanır (kategori listesi büyük); tek kategori sunucuda.
+    if (filter.categoryId != null && filter.groupId == null) {
       query = query.where('category', isEqualTo: filter.categoryId);
     }
 
     var from = DateTime.now();
-    DateTime? until;
+    final until = filter.until;
     final date = filter.date;
     if (date != null) {
       final dayStart = DateTime(date.year, date.month, date.day);
       if (dayStart.isAfter(from)) from = dayStart;
-      until = dayStart.add(const Duration(days: 1));
     }
     query = query.where(
       'startsAt',
@@ -96,12 +97,29 @@ const int discoverPageSize = 20;
 /// Ekranda gösterilecek en fazla etkinlik sayısı ("Daha fazla göster" ile artar).
 final discoverLimitProvider = StateProvider<int>((ref) => discoverPageSize);
 
+/// Kategori grubu süzgeci istemcide uygulandığı için o durumda daha çok etkinlik çekilir.
+const int groupFilterFetchLimit = 100;
+
 final discoverEventsProvider = StreamProvider<List<Event>>((ref) {
   final filter = ref.watch(discoverFilterProvider);
   final limit = ref.watch(discoverLimitProvider);
+  final effective = filter.groupId != null && limit < groupFilterFetchLimit
+      ? groupFilterFetchLimit
+      : limit;
   return ref
       .watch(eventQueryRepositoryProvider)
-      .watchDiscover(filter, limit: limit);
+      .watchDiscover(filter, limit: effective)
+      .map((events) => applyGroupFilter(events, filter.groupId));
+});
+
+/// Ana sayfa şeritleri için: seçili şehirdeki yaklaşan etkinlikler (en fazla [homeFetchLimit]).
+const int homeFetchLimit = 100;
+
+final homeEventsProvider = StreamProvider<List<Event>>((ref) {
+  final city = ref.watch(discoverFilterProvider.select((f) => f.city));
+  return ref
+      .watch(eventQueryRepositoryProvider)
+      .watchDiscover(EventFilter(city: city), limit: homeFetchLimit);
 });
 
 final ownedEventsProvider = StreamProvider<List<Event>>((ref) {
@@ -115,3 +133,11 @@ final joinedEventsProvider = StreamProvider<List<Event>>((ref) {
   if (user == null) return Stream<List<Event>>.value(const <Event>[]);
   return ref.watch(eventQueryRepositoryProvider).watchJoined(user.uid);
 });
+
+/// [groupId] verilmişse yalnızca o kategori grubundaki etkinlikleri bırakır.
+List<Event> applyGroupFilter(List<Event> events, String? groupId) {
+  if (groupId == null) return events;
+  return events
+      .where((event) => EventCategory.byId(event.category).group.id == groupId)
+      .toList();
+}

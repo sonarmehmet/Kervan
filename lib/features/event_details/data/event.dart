@@ -41,6 +41,7 @@ class Event {
     this.costNote = '',
     this.terms = '',
     this.saveCount = 0,
+    this.createdAt,
   });
 
   final String id;
@@ -80,6 +81,9 @@ class Event {
   /// Kaç kişi kaydetti (sunucu hesaplar).
   final int saveCount;
 
+  /// Oluşturulma zamanı (sunucu zamanı; yazma anında henüz çözülmemiş olabilir).
+  final DateTime? createdAt;
+
   factory Event.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? const <String, dynamic>{};
     return Event(
@@ -104,6 +108,7 @@ class Event {
       costNote: (data['costNote'] as String?) ?? '',
       terms: (data['terms'] as String?) ?? '',
       saveCount: (data['saveCount'] as num?)?.toInt() ?? 0,
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
     );
   }
 

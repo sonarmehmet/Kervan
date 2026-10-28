@@ -105,19 +105,23 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                   if (picked == null) return;
                   setState(
                     () => _draft = picked.isEmpty
-                        ? _draft.copyWith(clearCategory: true)
-                        : _draft.copyWith(categoryId: picked),
+                        ? _draft.copyWith(clearCategory: true, clearGroup: true)
+                        : _draft.copyWith(categoryId: picked, clearGroup: true),
                   );
                 },
                 icon: Icon(
-                  _draft.categoryId == null
-                      ? Icons.category_outlined
-                      : EventCategory.byId(_draft.categoryId!).icon,
+                  _draft.categoryId != null
+                      ? EventCategory.byId(_draft.categoryId!).icon
+                      : Icons.category_outlined,
                 ),
                 label: Text(
-                  _draft.categoryId == null
-                      ? 'Kategori seç'
-                      : EventCategory.byId(_draft.categoryId!).label,
+                  _draft.categoryId != null
+                      ? EventCategory.byId(_draft.categoryId!).label
+                      : _draft.groupId != null
+                          ? EventCategory.groups
+                              .firstWhere((g) => g.id == _draft.groupId)
+                              .label
+                          : 'Kategori seç',
                 ),
               ),
               const SizedBox(height: 16),
@@ -127,7 +131,7 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
                 label: Text(
                   _draft.date == null
                       ? 'Tarih seç'
-                      : DateFormatters.shortDate(_draft.date!),
+                      : DateFormatters.dateRange(_draft.date!, _draft.dateEnd),
                 ),
               ),
               if (_draft.date != null)

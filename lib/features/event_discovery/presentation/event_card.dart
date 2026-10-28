@@ -1,75 +1,145 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/event_categories.dart';
-import '../../../core/utils/date_formatters.dart';
+import '../../../core/theme/rota_colors.dart';
+import '../../../core/widgets/date_badge.dart';
 import '../../event_details/data/event.dart';
+import '../../saved/presentation/save_button.dart';
 
-/// Liste satırı: kategori simgesi, başlık, tarih, konum ve kapasite durumu.
+/// Etkinlik kartı: kapak (fotoğraf ya da renkli kategori zemini), tarih rozeti, başlık,
+/// katılımcı ve konum. Listede tam genişlikte, şeritlerde sabit genişlikte kullanılır.
 class EventCard extends StatelessWidget {
-  const EventCard({super.key, required this.event, required this.onTap});
+  const EventCard({
+    super.key,
+    required this.event,
+    required this.onTap,
+    this.showSave = false,
+    this.margin = const EdgeInsets.only(bottom: 14),
+  });
 
   final Event event;
   final VoidCallback onTap;
 
+  /// Kapağın köşesinde kaydet (yer imi) düğmesini göster. Oturum ve Firebase gerektirir.
+  final bool showSave;
+  final EdgeInsetsGeometry margin;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final category = EventCategory.byId(event.category);
     final muted = event.isCancelled || event.hasStarted;
+    final participants = event.acceptedCount == 0
+        ? 'İlk katılan sen ol'
+        : '${event.acceptedCount} kişi katılıyor';
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: margin,
       child: InkWell(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
+        child: Opacity(
+          opacity: muted ? 0.65 : 1,
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  category.icon,
-                  color: theme.colorScheme.onPrimaryContainer,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Opacity(
-                  opacity: muted ? 0.6 : 1,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        event.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium,
+              AspectRatio(
+                aspectRatio: 16 / 10,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    EventCover(event: event),
+                    Positioned(
+                      top: 10,
+                      left: 10,
+                      child: DateBadge(date: event.startsAt, size: 58),
+                    ),
+                    if (showSave)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: SaveButton(eventId: event.id, filled: true),
                       ),
-                      const SizedBox(height: 6),
-                      _InfoLine(
-                        icon: Icons.schedule,
-                        text: DateFormatters.eventDateTime(event.startsAt),
-                      ),
-                      const SizedBox(height: 2),
-                      _InfoLine(
-                        icon: Icons.location_on_outlined,
-                        text: event.locationLabel,
-                      ),
-                    ],
-                  ),
+                    Positioned(
+                      bottom: 10,
+                      right: 10,
+                      child: _StatusBadge(event: event),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 8),
-              _StatusBadge(event: event),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      event.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    _InfoLine(icon: Icons.people_alt_outlined, text: participants),
+                    const SizedBox(height: 4),
+                    _InfoLine(
+                      icon: Icons.location_on_outlined,
+                      text: event.locationLabel,
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Etkinlik kapağı: fotoğraf varsa o, yoksa kategori grubunun rengiyle zemin ve büyük simge.
+class EventCover extends StatelessWidget {
+  const EventCover({super.key, required this.event});
+
+  final Event event;
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = _CategoryCover(categoryId: event.category);
+    if (!event.hasImage) return fallback;
+    return Image.network(
+      event.imageUrl!,
+      fit: BoxFit.cover,
+      loadingBuilder: (context, child, progress) =>
+          progress == null ? child : fallback,
+      errorBuilder: (_, __, ___) => fallback,
+    );
+  }
+}
+
+class _CategoryCover extends StatelessWidget {
+  const _CategoryCover({required this.categoryId});
+
+  final String categoryId;
+
+  @override
+  Widget build(BuildContext context) {
+    final category = EventCategory.byId(categoryId);
+    final groupIndex = EventCategory.groups.indexWhere((g) => g.id == category.group.id);
+    final base = RotaColors.accentAt(groupIndex < 0 ? 0 : groupIndex);
+    final onBase = RotaColors.onAccent(base);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [base, Color.lerp(base, Colors.black, 0.28)!],
+        ),
+      ),
+      child: Align(
+        alignment: Alignment.bottomRight,
+        child: Padding(
+          padding: const EdgeInsets.only(right: 14, bottom: 10),
+          child: Icon(category.icon, size: 84, color: onBase.withValues(alpha: 0.28)),
         ),
       ),
     );
@@ -125,22 +195,25 @@ class _StatusBadge extends StatelessWidget {
       foreground = theme.colorScheme.onSurfaceVariant;
     } else if (event.isFull) {
       label = 'Dolu';
-      background = theme.colorScheme.tertiaryContainer;
-      foreground = theme.colorScheme.onTertiaryContainer;
+      background = RotaColors.ember;
+      foreground = Colors.white;
     } else {
       label = '${event.acceptedCount}/${event.capacity}';
-      background = theme.colorScheme.secondaryContainer;
-      foreground = theme.colorScheme.onSecondaryContainer;
+      background = RotaColors.ink;
+      foreground = RotaColors.paper;
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
-        style: theme.textTheme.labelMedium?.copyWith(color: foreground),
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: foreground,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
