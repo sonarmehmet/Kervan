@@ -39,7 +39,7 @@ class CategoryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final groups = EventCategory.groups;
+    const groups = EventCategory.groups;
     return SizedBox(
       height: 132,
       child: ListView.separated(

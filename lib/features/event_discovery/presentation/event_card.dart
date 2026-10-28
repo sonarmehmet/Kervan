@@ -42,8 +42,8 @@ class EventCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AspectRatio(
-                aspectRatio: 16 / 10,
+              SizedBox(
+                height: 176,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [

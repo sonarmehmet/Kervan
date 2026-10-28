@@ -323,7 +323,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
     return [
       SectionHeader(title: title, onSeeAll: onSeeAll),
       SizedBox(
-        height: 292,
+        height: 300,
         child: ListView.separated(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           scrollDirection: Axis.horizontal,
